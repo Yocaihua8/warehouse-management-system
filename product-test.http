@@ -1,0 +1,125 @@
+### 测试新增商品接口
+POST http://localhost:8080/product/add
+Content-Type: application/json
+
+{
+  "productCode": "P003",
+  "productName": "锤子",
+  "specification": "16oz",
+  "unit": "把",
+  "category": "工具",
+  "salePrice": 18.50,
+  "remark": "测试新增商品"
+}
+
+### 删除商品
+DELETE http://localhost:8080/product/delete/3
+
+### 修改商品
+PUT http://localhost:8080/product/update
+Content-Type: application/json
+
+{
+  "id": 2,
+  "productName": "活动扳手",
+  "specification": "12寸",
+  "unit": "把",
+  "category": "工具",
+  "salePrice": 35.00,
+  "remark": "修改后的商品信息"
+}
+
+### 客户列表
+GET http://localhost:8080/customer/list
+
+### 按名称查询客户
+GET http://localhost:8080/customer/list?customerName=华星
+
+### 客户详情
+GET http://localhost:8080/customer/1
+
+### 新增客户
+POST http://localhost:8080/customer/add
+Content-Type: application/json
+
+{
+  "customerCode": "C003",
+  "customerName": "顺发建材店",
+  "contactPerson": "王五",
+  "phone": "13800138003",
+  "address": "绍兴市越城区",
+  "remark": "测试新增客户"
+}
+
+### 修改客户
+PUT http://localhost:8080/customer/update
+Content-Type: application/json
+
+{
+  "id": 2,
+  "customerName": "永达工具总汇",
+  "contactPerson": "李四",
+  "phone": "13800138022",
+  "address": "宁波市海曙区",
+  "remark": "修改后的客户信息"
+}
+
+### 删除客户
+DELETE http://localhost:8080/customer/delete/3
+
+### 修改库存
+PUT http://localhost:8080/stock/update
+Content-Type: application/json
+
+{
+  "productId": 2,
+  "quantity": 15,
+  "warningQuantity": 10
+}
+
+### 新增销售出库单
+POST http://localhost:8080/outbound-order/add
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "remark": "测试销售出库单",
+  "itemList": [
+    {
+      "productId": 1,
+      "quantity": 5,
+      "unitPrice": 0.50,
+      "remark": "螺丝出库"
+    },
+    {
+      "productId": 2,
+      "quantity": 2,
+      "unitPrice": 35.00,
+      "remark": "活动扳手出库"
+    }
+  ]
+}
+
+### 新增采购入库单
+POST http://localhost:8080/inbound-order/add
+Content-Type: application/json
+
+{
+  "supplierName": "杭州宏达供应商",
+  "remark": "测试采购入库单",
+  "itemList": [
+    {
+      "productId": 1,
+      "quantity": 10,
+      "unitPrice": 0.40,
+      "remark": "螺丝入库"
+    },
+    {
+      "productId": 2,
+      "quantity": 5,
+      "unitPrice": 30.00,
+      "remark": "活动扳手入库"
+    }
+  ]
+}
+

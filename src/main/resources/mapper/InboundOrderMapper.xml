@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.InboundOrderMapper">
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.InboundOrder"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inbound_order (
+        order_no,
+        supplier_name,
+        total_amount,
+        order_status,
+        remark
+        ) VALUES (
+        #{orderNo},
+        #{supplierName},
+        #{totalAmount},
+        #{orderStatus},
+        #{remark}
+        )
+    </insert>
+
+    <select id="selectPage" resultType="com.yocaihua.wms.vo.InboundOrderVO">
+        SELECT
+        id,
+        order_no,
+        supplier_name,
+        total_amount,
+        order_status,
+        remark,
+        created_time
+        FROM inbound_order
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM inbound_order
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectDetailById" resultType="com.yocaihua.wms.vo.InboundOrderDetailVO">
+        SELECT
+        id,
+        order_no,
+        supplier_name,
+        total_amount,
+        order_status,
+        remark,
+        created_time
+        FROM inbound_order
+        WHERE id = #{id}
+    </select>
+
+</mapper>

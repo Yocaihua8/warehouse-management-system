@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.StockMapper">
+
+    <select id="selectStockList" resultType="com.yocaihua.wms.vo.StockVO">
+        SELECT
+        p.id AS product_id,
+        p.product_code,
+        p.product_name,
+        p.specification,
+        p.unit,
+        p.category,
+        s.quantity,
+        s.warning_quantity,
+        CASE
+        WHEN s.quantity &lt;= s.warning_quantity THEN 1
+        ELSE 0
+        END AS low_stock
+        FROM product p
+        LEFT JOIN stock s ON p.id = s.product_id
+        <where>
+            <if test="productName != null and productName != ''">
+                p.product_name LIKE CONCAT('%', #{productName}, '%')
+            </if>
+        </where>
+        ORDER BY p.id ASC
+    </select>
+
+    <select id="selectByProductId" resultType="com.yocaihua.wms.vo.StockVO">
+        SELECT
+        p.id AS product_id,
+        p.product_code,
+        p.product_name,
+        p.specification,
+        p.unit,
+        p.category,
+        s.quantity,
+        s.warning_quantity,
+        CASE
+        WHEN s.quantity &lt;= s.warning_quantity THEN 1
+        ELSE 0
+        END AS low_stock
+        FROM product p
+        LEFT JOIN stock s ON p.id = s.product_id
+        WHERE p.id = #{productId}
+    </select>
+
+    <update id="updateByProductId" parameterType="com.yocaihua.wms.dto.StockUpdateDTO">
+        UPDATE stock
+        SET
+        quantity = #{quantity},
+        warning_quantity = #{warningQuantity}
+        WHERE product_id = #{productId}
+    </update>
+
+    <update id="decreaseStock">
+        UPDATE stock
+        SET quantity = quantity - #{quantity}
+        WHERE product_id = #{productId}
+        AND quantity >= #{quantity}
+    </update>
+
+    <update id="increaseStock">
+        UPDATE stock
+        SET quantity = quantity + #{quantity}
+        WHERE product_id = #{productId}
+    </update>
+
+    <insert id="insertInitStock">
+        INSERT INTO stock (
+        product_id,
+        quantity,
+        warning_quantity
+        ) VALUES (
+        #{productId},
+        #{quantity},
+        #{warningQuantity}
+        )
+    </insert>
+
+
+</mapper>
