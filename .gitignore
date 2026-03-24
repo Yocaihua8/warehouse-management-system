@@ -1,9 +1,3 @@
-# Compiled class file
-*.class
-
-# Log file
-*.log
-
 # BlueJ files
 *.ctxt
 
@@ -23,7 +17,31 @@
 hs_err_pid*
 replay_pid*
 
-.idea/
+# ===== Java / Maven =====
 target/
-*.iml
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.jar
+*.class
 *.log
+
+# ===== IntelliJ IDEA =====
+.idea/
+*.iml
+out/
+
+# ===== VS Code =====
+.vscode/
+
+# ===== Frontend / Node =====
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Local config =====
+src/main/resources/application-local.yml
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
