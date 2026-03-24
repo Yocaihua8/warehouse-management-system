@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/inbound-order")
 public class InboundOrderController {
 
     private final InboundOrderService inboundOrderService;
@@ -18,12 +19,12 @@ public class InboundOrderController {
         this.inboundOrderService = inboundOrderService;
     }
 
-    @PostMapping("/inbound-order/add")
+    @PostMapping("/add")
     public Result<String> saveInboundOrder(@Valid @RequestBody InboundOrderAddDTO inboundOrderAddDTO) {
         return Result.success(inboundOrderService.saveInboundOrder(inboundOrderAddDTO));
     }
 
-    @GetMapping("/inbound-order/list")
+    @GetMapping("/list")
     public Result<PageResult<InboundOrderVO>> getInboundOrderPage(
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) Integer pageNum,
@@ -31,7 +32,7 @@ public class InboundOrderController {
         return Result.success(inboundOrderService.getInboundOrderPage(orderNo, pageNum, pageSize));
     }
 
-    @GetMapping("/inbound-order/{id}")
+    @GetMapping("/detail/{id}")
     public Result<InboundOrderDetailVO> getInboundOrderDetail(@PathVariable Long id) {
         return Result.success(inboundOrderService.getInboundOrderDetail(id));
     }
