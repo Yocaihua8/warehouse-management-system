@@ -1,14 +1,26 @@
-import axios from 'axios'
+import request from '../utils/request'
 
-const request = axios.create({
-    baseURL: 'http://localhost:8080',
-    timeout: 5000
-})
-
-export const getStockList = (params) => {
+export function getStockList(params) {
     return request({
         url: '/stock/list',
         method: 'get',
         params
+    })
+}
+
+export function exportStockList(params) {
+    return request({
+        url: '/stock/export',
+        method: 'get',
+        params,
+        responseType: 'blob'
+    })
+}
+
+export function updateStock(data) {
+    return request({
+        url: '/stock/update',
+        method: 'put',
+        data
     })
 }

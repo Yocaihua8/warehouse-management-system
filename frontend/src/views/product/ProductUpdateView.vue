@@ -59,6 +59,17 @@
           </el-col>
 
           <el-col :span="24">
+            <el-form-item label="自定义字段" prop="customFieldsJson">
+              <el-input
+                  v-model="form.customFieldsJson"
+                  type="textarea"
+                  :rows="4"
+                  placeholder='请输入JSON对象，如 {"brand":"A牌","origin":"温州"}'
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
             <el-form-item label="备注" prop="remark">
               <el-input
                   v-model="form.remark"
@@ -92,7 +103,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { updateProduct } from '../../api/product'
+import { getProductDetail, updateProduct } from '../../api/product'
 
 const route = useRoute()
 const router = useRouter()
@@ -107,9 +118,32 @@ const form = reactive({
   unit: '',
   category: '',
   salePrice: 0,
+  customFieldsJson: '',
   remark: '',
   status: 1
 })
+
+const validateCustomFieldsJson = (_rule, value, callback) => {
+  const text = (value || '').trim()
+  if (!text) {
+    callback()
+    return
+  }
+  if (text.length > 4000) {
+    callback(new Error('自定义字段长度不能超过4000个字符'))
+    return
+  }
+  try {
+    const parsed = JSON.parse(text)
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+      callback(new Error('自定义字段必须是JSON对象'))
+      return
+    }
+    callback()
+  } catch (e) {
+    callback(new Error('自定义字段不是合法JSON'))
+  }
+}
 
 const rules = {
   productCode: [{ required: true, message: '请输入商品编码', trigger: 'blur' }],
@@ -118,19 +152,45 @@ const rules = {
   unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
   category: [{ required: true, message: '请输入分类', trigger: 'blur' }],
   salePrice: [{ required: true, message: '请输入销售价', trigger: 'change' }],
+  customFieldsJson: [{ validator: validateCustomFieldsJson, trigger: 'blur' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
-const initFormFromRoute = () => {
-  form.id = Number(route.params.id)
-  form.productCode = route.query.productCode || ''
-  form.productName = route.query.productName || ''
-  form.specification = route.query.specification || ''
-  form.unit = route.query.unit || ''
-  form.category = route.query.category || ''
-  form.salePrice = Number(route.query.salePrice || 0)
-  form.remark = route.query.remark || ''
-  form.status = Number(route.query.status ?? 1)
+const loadProductDetail = async () => {
+  const id = Number(route.params.id)
+  if (!id) {
+    ElMessage.error('商品ID无效')
+    router.push('/product/list')
+    return
+  }
+
+  form.id = id
+  loading.value = true
+  try {
+    const res = await getProductDetail(id)
+    if (!res.data || res.data.code !== 1 || !res.data.data) {
+      ElMessage.error(res.data?.message || '加载商品详情失败')
+      router.push('/product/list')
+      return
+    }
+
+    const detail = res.data.data
+    form.productCode = detail.productCode || ''
+    form.productName = detail.productName || ''
+    form.specification = detail.specification || ''
+    form.unit = detail.unit || ''
+    form.category = detail.category || ''
+    form.salePrice = Number(detail.salePrice || 0)
+    form.customFieldsJson = detail.customFieldsJson || ''
+    form.remark = detail.remark || ''
+    form.status = Number(detail.status ?? 1)
+  } catch (error) {
+    console.error('加载商品详情失败:', error)
+    ElMessage.error('请求商品详情接口失败')
+    router.push('/product/list')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleBack = () => {
@@ -152,6 +212,7 @@ const handleSubmit = async () => {
         unit: form.unit,
         category: form.category,
         salePrice: form.salePrice,
+        customFieldsJson: form.customFieldsJson,
         remark: form.remark,
         status: form.status
       })
@@ -170,7 +231,7 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  initFormFromRoute()
+  loadProductDetail()
 })
 </script>
 

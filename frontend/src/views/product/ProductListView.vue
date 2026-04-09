@@ -53,6 +53,19 @@
         <el-table-column prop="unit" label="单位" width="100" />
         <el-table-column prop="category" label="分类" width="140" />
         <el-table-column prop="salePrice" label="销售价" width="120" />
+        <el-table-column label="自定义字段摘要" min-width="220">
+          <template #default="scope">
+            <el-tooltip
+                v-if="scope.row.customFieldsJson"
+                effect="dark"
+                placement="top"
+                :content="scope.row.customFieldsJson"
+            >
+              <span>{{ summarizeCustomFields(scope.row.customFieldsJson) }}</span>
+            </el-tooltip>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="180" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
@@ -107,6 +120,27 @@ const queryForm = reactive({
   productName: ''
 })
 
+const parsePageData = (payload) => {
+  if (Array.isArray(payload)) {
+    return {
+      list: payload,
+      total: payload.length
+    }
+  }
+
+  return {
+    list: Array.isArray(payload?.list) ? payload.list : [],
+    total: typeof payload?.total === 'number' ? payload.total : 0
+  }
+}
+
+const summarizeCustomFields = (value) => {
+  const text = (value || '').trim()
+  if (!text) return '-'
+  if (text.length <= 30) return text
+  return `${text.slice(0, 30)}...`
+}
+
 const loadProductList = async () => {
   loading.value = true
   try {
@@ -118,12 +152,17 @@ const loadProductList = async () => {
     })
 
     if (res.data && res.data.code === 1) {
-      tableData.value = res.data.data?.list || []
-      total.value = res.data.data?.total || 0
+      const pageData = parsePageData(res.data.data)
+      tableData.value = pageData.list
+      total.value = pageData.total
     } else {
+      tableData.value = []
+      total.value = 0
       ElMessage.error(res.data?.message || '查询商品列表失败')
     }
   } catch (error) {
+    tableData.value = []
+    total.value = 0
     console.error('加载商品列表失败:', error)
     ElMessage.error('请求商品列表接口失败')
   } finally {
@@ -158,6 +197,7 @@ const handleEdit = (row) => {
       unit: row.unit,
       category: row.category,
       salePrice: row.salePrice,
+      customFieldsJson: row.customFieldsJson || '',
       remark: row.remark || '',
       status: row.status
     }

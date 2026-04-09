@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE jasperReport PUBLIC "-//JasperReports//DTD Report Design//EN" "http://jasperreports.sourceforge.net/dtds/jasperreport.dtd">
+<jasperReport name="inboundOrderExport" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    <parameter name="orderNo" class="java.lang.String"/>
+    <parameter name="supplierName" class="java.lang.String"/>
+    <parameter name="sourceTypeText" class="java.lang.String"/>
+    <parameter name="orderStatusText" class="java.lang.String"/>
+    <parameter name="createdTime" class="java.lang.String"/>
+    <parameter name="totalAmountText" class="java.lang.String"/>
+    <parameter name="remark" class="java.lang.String"/>
+    <parameter name="aiRecordId" class="java.lang.String"/>
+    <parameter name="aiTaskNo" class="java.lang.String"/>
+    <parameter name="aiSourceFileName" class="java.lang.String"/>
+
+    <field name="productCode" class="java.lang.String"/>
+    <field name="productName" class="java.lang.String"/>
+    <field name="specification" class="java.lang.String"/>
+    <field name="unit" class="java.lang.String"/>
+    <field name="quantity" class="java.lang.Integer"/>
+    <field name="unitPrice" class="java.math.BigDecimal"/>
+    <field name="amount" class="java.math.BigDecimal"/>
+    <field name="remark" class="java.lang.String"/>
+
+    <title>
+        <band height="34">
+            <staticText>
+                <reportElement x="0" y="6" width="555" height="24"/>
+                <textElement textAlignment="Center">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <text><![CDATA[采购入库单]]></text>
+            </staticText>
+        </band>
+    </title>
+
+    <pageHeader>
+        <band height="140">
+            <staticText><reportElement x="0" y="0" width="70" height="18"/><text><![CDATA[入库单号：]]></text></staticText>
+            <textField><reportElement x="70" y="0" width="205" height="18"/><textFieldExpression><![CDATA[$P{orderNo}]]></textFieldExpression></textField>
+            <staticText><reportElement x="290" y="0" width="70" height="18"/><text><![CDATA[供应商：]]></text></staticText>
+            <textField><reportElement x="360" y="0" width="195" height="18"/><textFieldExpression><![CDATA[$P{supplierName}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="22" width="70" height="18"/><text><![CDATA[来源类型：]]></text></staticText>
+            <textField><reportElement x="70" y="22" width="205" height="18"/><textFieldExpression><![CDATA[$P{sourceTypeText}]]></textFieldExpression></textField>
+            <staticText><reportElement x="290" y="22" width="70" height="18"/><text><![CDATA[状态：]]></text></staticText>
+            <textField><reportElement x="360" y="22" width="195" height="18"/><textFieldExpression><![CDATA[$P{orderStatusText}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="44" width="70" height="18"/><text><![CDATA[创建时间：]]></text></staticText>
+            <textField><reportElement x="70" y="44" width="205" height="18"/><textFieldExpression><![CDATA[$P{createdTime}]]></textFieldExpression></textField>
+            <staticText><reportElement x="290" y="44" width="70" height="18"/><text><![CDATA[总金额：]]></text></staticText>
+            <textField><reportElement x="360" y="44" width="195" height="18"/><textFieldExpression><![CDATA[$P{totalAmountText}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="66" width="70" height="18"/><text><![CDATA[AI记录ID：]]></text></staticText>
+            <textField><reportElement x="70" y="66" width="205" height="18"/><textFieldExpression><![CDATA[$P{aiRecordId}]]></textFieldExpression></textField>
+            <staticText><reportElement x="290" y="66" width="70" height="18"/><text><![CDATA[AI任务号：]]></text></staticText>
+            <textField><reportElement x="360" y="66" width="195" height="18"/><textFieldExpression><![CDATA[$P{aiTaskNo}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="88" width="70" height="18"/><text><![CDATA[源文件名：]]></text></staticText>
+            <textField><reportElement x="70" y="88" width="485" height="18"/><textFieldExpression><![CDATA[$P{aiSourceFileName}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="110" width="70" height="18"/><text><![CDATA[备注：]]></text></staticText>
+            <textField isStretchWithOverflow="true">
+                <reportElement x="70" y="110" width="485" height="28"/>
+                <textFieldExpression><![CDATA[$P{remark}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageHeader>
+
+    <columnHeader>
+        <band height="22">
+            <staticText><reportElement x="0" y="0" width="30" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[序号]]></text></staticText>
+            <staticText><reportElement x="30" y="0" width="75" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[商品编码]]></text></staticText>
+            <staticText><reportElement x="105" y="0" width="90" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[商品名称]]></text></staticText>
+            <staticText><reportElement x="195" y="0" width="70" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[规格]]></text></staticText>
+            <staticText><reportElement x="265" y="0" width="40" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[单位]]></text></staticText>
+            <staticText><reportElement x="305" y="0" width="45" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[数量]]></text></staticText>
+            <staticText><reportElement x="350" y="0" width="60" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[单价]]></text></staticText>
+            <staticText><reportElement x="410" y="0" width="60" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[金额]]></text></staticText>
+            <staticText><reportElement x="470" y="0" width="85" height="22"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement><text><![CDATA[备注]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="20">
+            <textField><reportElement x="0" y="0" width="30" height="20"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression></textField>
+            <textField><reportElement x="30" y="0" width="75" height="20"/><box><pen lineWidth="0.5"/></box><textElement verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{productCode} == null ? "" : $F{productCode}]]></textFieldExpression></textField>
+            <textField><reportElement x="105" y="0" width="90" height="20"/><box><pen lineWidth="0.5"/></box><textElement verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{productName} == null ? "" : $F{productName}]]></textFieldExpression></textField>
+            <textField><reportElement x="195" y="0" width="70" height="20"/><box><pen lineWidth="0.5"/></box><textElement verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{specification} == null ? "" : $F{specification}]]></textFieldExpression></textField>
+            <textField><reportElement x="265" y="0" width="40" height="20"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{unit} == null ? "" : $F{unit}]]></textFieldExpression></textField>
+            <textField><reportElement x="305" y="0" width="45" height="20"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{quantity} == null ? "0" : String.valueOf($F{quantity})]]></textFieldExpression></textField>
+            <textField><reportElement x="350" y="0" width="60" height="20"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{unitPrice} == null ? "-" : $F{unitPrice}.stripTrailingZeros().toPlainString()]]></textFieldExpression></textField>
+            <textField><reportElement x="410" y="0" width="60" height="20"/><box><pen lineWidth="0.5"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{amount} == null ? "-" : $F{amount}.stripTrailingZeros().toPlainString()]]></textFieldExpression></textField>
+            <textField><reportElement x="470" y="0" width="85" height="20"/><box><pen lineWidth="0.5"/></box><textElement verticalAlignment="Middle"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{remark} == null ? "" : $F{remark}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+</jasperReport>
+

@@ -1,0 +1,13 @@
+### 库存分页-默认查询
+GET http://localhost:8080/stock/list?pageNum=1&pageSize=10
+
+### 库存分页-按商品名称查询
+GET http://localhost:8080/stock/list?productName=螺丝&pageNum=1&pageSize=5
+
+### 库存分页-按商品编码查询
+GET http://localhost:8080/stock/list?productCode=P001&pageNum=1&pageSize=5
+
+
+###
+GET http://localhost:8080/stock/list
+token: {{TOKEN}}

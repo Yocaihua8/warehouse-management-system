@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.StockAdjustLogMapper">
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.StockAdjustLog">
+        INSERT INTO stock_adjust_log
+        (
+        product_id,
+        product_name_snapshot,
+        before_quantity,
+        after_quantity,
+        change_quantity,
+        change_type,
+        biz_order_id,
+        biz_order_no,
+        operator_name,
+        reason,
+        remark
+        )
+        VALUES
+        (
+        #{productId},
+        #{productNameSnapshot},
+        #{beforeQuantity},
+        #{afterQuantity},
+        #{changeQuantity},
+        #{changeType},
+        #{bizOrderId},
+        #{bizOrderNo},
+        #{operatorName},
+        #{reason},
+        #{remark}
+        )
+    </insert>
+
+    <select id="countLog" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM stock_adjust_log sal
+        LEFT JOIN product p ON sal.product_id = p.id
+        <where>
+            <if test="productName != null and productName != ''">
+                AND COALESCE(sal.product_name_snapshot, p.product_name) LIKE CONCAT('%', #{productName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectLogPage" resultType="com.yocaihua.wms.vo.StockAdjustLogVO">
+        SELECT
+        sal.id,
+        sal.product_id,
+        p.product_code,
+        COALESCE(sal.product_name_snapshot, p.product_name) AS productName,
+        sal.before_quantity,
+        sal.after_quantity,
+        sal.change_quantity,
+        sal.change_type,
+        sal.biz_order_id,
+        sal.biz_order_no,
+        sal.operator_name,
+        sal.reason,
+        sal.remark,
+        sal.created_time
+        FROM stock_adjust_log sal
+        LEFT JOIN product p ON sal.product_id = p.id
+        <where>
+            <if test="productName != null and productName != ''">
+                AND COALESCE(sal.product_name_snapshot, p.product_name) LIKE CONCAT('%', #{productName}, '%')
+            </if>
+        </where>
+        ORDER BY sal.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>

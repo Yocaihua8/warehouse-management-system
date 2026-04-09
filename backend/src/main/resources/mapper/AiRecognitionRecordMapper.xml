@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.AiRecognitionRecordMapper">
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.AiRecognitionRecord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_recognition_record (
+        task_no,
+        doc_type,
+        source_file_name,
+        source_file_path,
+        recognition_status,
+        supplier_name,
+        raw_text,
+        warnings_json,
+        result_json,
+        error_message,
+        confirmed_order_id,
+        created_by
+        ) VALUES (
+        #{taskNo},
+        #{docType},
+        #{sourceFileName},
+        #{sourceFilePath},
+        #{recognitionStatus},
+        #{supplierName},
+        #{rawText},
+        #{warningsJson},
+        #{resultJson},
+        #{errorMessage},
+        #{confirmedOrderId},
+        #{createdBy}
+        )
+    </insert>
+
+    <select id="selectById" resultType="com.yocaihua.wms.entity.AiRecognitionRecord">
+        SELECT
+        id,
+        task_no,
+        doc_type,
+        source_file_name,
+        source_file_path,
+        recognition_status,
+        supplier_name,
+        raw_text,
+        warnings_json,
+        result_json,
+        error_message,
+        confirmed_order_id,
+        created_by,
+        created_time,
+        updated_time
+        FROM ai_recognition_record
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByIdForUpdate" resultType="com.yocaihua.wms.entity.AiRecognitionRecord">
+        SELECT
+        id,
+        task_no,
+        doc_type,
+        source_file_name,
+        source_file_path,
+        recognition_status,
+        supplier_name,
+        raw_text,
+        warnings_json,
+        result_json,
+        error_message,
+        confirmed_order_id,
+        created_by,
+        created_time,
+        updated_time
+        FROM ai_recognition_record
+        WHERE id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="selectByTaskNo" resultType="com.yocaihua.wms.entity.AiRecognitionRecord">
+        SELECT
+        id,
+        task_no,
+        doc_type,
+        source_file_name,
+        source_file_path,
+        recognition_status,
+        supplier_name,
+        raw_text,
+        warnings_json,
+        result_json,
+        error_message,
+        confirmed_order_id,
+        created_by,
+        created_time,
+        updated_time
+        FROM ai_recognition_record
+        WHERE task_no = #{taskNo}
+    </select>
+
+    <select id="selectInboundRecordList" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
+        SELECT
+        air.id,
+        air.task_no AS taskNo,
+        air.source_file_name AS sourceFileName,
+        air.supplier_name AS supplierName,
+        JSON_UNQUOTE(JSON_EXTRACT(air.result_json, '$.supplierMatchStatus')) AS supplierMatchStatus,
+        air.recognition_status AS recognitionStatus,
+        air.confirmed_order_id AS confirmedOrderId,
+        io.order_no AS confirmedOrderNo,
+        air.created_time AS createdTime
+        FROM ai_recognition_record air
+        LEFT JOIN inbound_order io ON air.confirmed_order_id = io.id
+        WHERE air.doc_type = 'inbound'
+        ORDER BY air.id DESC
+    </select>
+
+    <select id="selectOutboundRecordList" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
+        SELECT
+        air.id,
+        air.task_no AS taskNo,
+        air.source_file_name AS sourceFileName,
+        air.supplier_name AS customerName,
+        JSON_UNQUOTE(JSON_EXTRACT(air.result_json, '$.customerMatchStatus')) AS customerMatchStatus,
+        air.recognition_status AS recognitionStatus,
+        air.confirmed_order_id AS confirmedOrderId,
+        oo.order_no AS confirmedOrderNo,
+        air.created_time AS createdTime
+        FROM ai_recognition_record air
+        LEFT JOIN outbound_order oo ON air.confirmed_order_id = oo.id
+        WHERE air.doc_type = 'outbound'
+        ORDER BY air.id DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE ai_recognition_record
+        SET recognition_status = #{recognitionStatus},
+        error_message = #{errorMessage},
+        supplier_name = #{supplierName},
+        raw_text = #{rawText},
+        warnings_json = #{warningsJson},
+        result_json = #{resultJson}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateConfirmedOrderId">
+        UPDATE ai_recognition_record
+        SET confirmed_order_id = #{confirmedOrderId},
+        recognition_status = #{recognitionStatus}
+        WHERE id = #{id}
+          AND confirmed_order_id IS NULL
+          AND recognition_status != #{recognitionStatus}
+    </update>
+
+</mapper>

@@ -1,0 +1,171 @@
+.root {
+  -fx-font-family: "Microsoft YaHei UI";
+  -fx-background-color: #f5f6f8;
+}
+
+.startup-root {
+  -fx-background-color: #ffffff;
+}
+
+.startup-title {
+  -fx-font-size: 24px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #303133;
+}
+
+.startup-text {
+  -fx-font-size: 14px;
+  -fx-text-fill: #606266;
+}
+
+.startup-status {
+  -fx-font-size: 14px;
+  -fx-text-fill: #409eff;
+}
+
+.page-root {
+  -fx-padding: 28px;
+  -fx-background-color: #f5f6f8;
+}
+
+.page-card {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 6px;
+  -fx-border-color: #dcdfe6;
+  -fx-border-radius: 6px;
+  -fx-padding: 20px;
+}
+
+.page-title {
+  -fx-font-size: 22px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #303133;
+}
+
+.page-subtitle {
+  -fx-font-size: 14px;
+  -fx-text-fill: #606266;
+}
+
+.page-label {
+  -fx-font-size: 13px;
+  -fx-text-fill: #606266;
+}
+
+.placeholder-note {
+  -fx-font-size: 12px;
+  -fx-text-fill: #909399;
+}
+
+.shell-root {
+  -fx-background-color: #f5f6f8;
+}
+
+.shell-sidebar {
+  -fx-pref-width: 180px;
+  -fx-background-color: #ffffff;
+  -fx-border-color: #dcdfe6;
+  -fx-border-width: 0 1px 0 0;
+}
+
+.shell-brand {
+  -fx-font-size: 20px;
+  -fx-font-weight: 700;
+  -fx-text-fill: #303133;
+}
+
+.shell-nav-group {
+  -fx-padding: 12px 0 0 0;
+}
+
+.shell-nav-item {
+  -fx-font-size: 14px;
+  -fx-text-fill: #303133;
+}
+
+.shell-nav-button {
+  -fx-alignment: center-left;
+  -fx-background-color: transparent;
+  -fx-background-radius: 4px;
+  -fx-border-color: transparent;
+  -fx-padding: 10px 12px;
+  -fx-font-size: 14px;
+  -fx-text-fill: #303133;
+  -fx-cursor: hand;
+}
+
+.shell-nav-button:hover {
+  -fx-background-color: #f2f6fc;
+}
+
+.shell-nav-button-active {
+  -fx-background-color: #ecf5ff;
+  -fx-text-fill: #409eff;
+  -fx-font-weight: 700;
+}
+
+.shell-header {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #dcdfe6;
+  -fx-border-width: 0 0 1px 0;
+}
+
+.shell-global-notice {
+  -fx-background-color: #fdf6ec;
+  -fx-border-color: #f5dab1;
+  -fx-border-width: 0 0 1px 0;
+}
+
+.shell-global-notice-text {
+  -fx-font-size: 13px;
+  -fx-text-fill: #e6a23c;
+}
+
+.shell-global-notice-action {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #e6a23c;
+  -fx-border-radius: 4px;
+  -fx-background-radius: 4px;
+  -fx-text-fill: #e6a23c;
+  -fx-padding: 6px 12px;
+  -fx-cursor: hand;
+}
+
+.shell-logout-button {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #dcdfe6;
+  -fx-border-radius: 4px;
+  -fx-background-radius: 4px;
+  -fx-padding: 8px 12px;
+}
+
+.shell-content {
+  -fx-background-color: #f5f6f8;
+}
+
+.shell-content-scroll {
+  -fx-background-color: transparent;
+  -fx-fit-to-width: false;
+}
+
+.shell-content-scroll > .viewport {
+  -fx-background-color: #f5f6f8;
+}
+
+.shell-sidebar-scroll {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #dcdfe6;
+  -fx-border-width: 0 1px 0 0;
+}
+
+.shell-sidebar-scroll > .viewport {
+  -fx-background-color: #ffffff;
+}
+
+.settings-scroll {
+  -fx-background-color: transparent;
+}
+
+.settings-scroll > .viewport {
+  -fx-background-color: #f5f6f8;
+}
