@@ -357,23 +357,6 @@ mvn javafx:run
 - 商品/供应商 Excel 导出可下载
 - 入库/出库 PDF 可下载并可打印
 
-## 3-5分钟演示路径（简历/面试可用）
-
-建议按以下顺序录屏：
-
-1. 管理员登录，展示角色标签
-2. 入库列表筛选“草稿” -> 编辑草稿 -> 确认入库
-3. 出库列表批量选择草稿 -> 批量确认（或批量作废）
-4. 进入单据详情后返回，展示筛选与分页状态未丢失
-5. 导出一份 Excel 与一份 PDF，完成演示闭环
-
-完整逐句演示脚本可参考：
-
-- [docs/dev/MVP_演示脚本_3到5分钟.md](/E:/Code/warehouse-management-system/docs/dev/MVP_演示脚本_3到5分钟.md)
-- [docs/dev/MVP_一页纸项目说明.md](/E:/Code/warehouse-management-system/docs/dev/MVP_一页纸项目说明.md)
-- [docs/dev/简历项目描述_三版本.md](/E:/Code/warehouse-management-system/docs/dev/简历项目描述_三版本.md)
-- [docs/dev/面试口述版_90秒与3分钟.md](/E:/Code/warehouse-management-system/docs/dev/面试口述版_90秒与3分钟.md)
-
 ## 文档入口
 
 如果你要继续看桌面端设计和约定，先看这些文档：
