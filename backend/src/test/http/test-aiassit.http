@@ -1,0 +1,45 @@
+GET http://localhost:8080/ai/ping
+token: {{TOKEN}}
+
+###
+POST http://localhost:8080/ai/inbound/recognize
+token: {{TOKEN}}
+
+###
+POST http://localhost:8080/ai/inbound/confirm
+token: {{TOKEN}}
+Content-Type: application/json
+
+{
+  "recordId": 1,
+  "supplierName": "温州联盛五金商行",
+  "remark": "AI识别确认生成入库单",
+  "itemList": [
+    {
+      "matchedProductId": 1,
+      "quantity": 20,
+      "unitPrice": 12.50,
+      "remark": "AI识别"
+    },
+    {
+      "matchedProductId": 3,
+      "quantity": 10,
+      "unitPrice": 28.00,
+      "remark": "AI识别"
+    },
+    {
+      "matchedProductId": 5,
+      "quantity": 30,
+      "unitPrice": 22.00,
+      "remark": "AI识别"
+    }
+  ]
+}
+
+###
+GET http://localhost:8080/ai/inbound/list
+token: {{TOKEN}}
+
+###
+GET http://localhost:8080/ai/inbound/detail/6
+token: {{TOKEN}}

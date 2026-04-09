@@ -8,6 +8,7 @@
       </template>
 
       <el-form
+          v-loading="loading"
           ref="formRef"
           :model="form"
           :rules="rules"
@@ -79,11 +80,12 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
-import { updateCustomer } from '../../api/customer'
+import { getCustomerDetail, updateCustomer } from '../../api/customer'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref()
+const loading = ref(false)
 
 const form = reactive({
   id: null,
@@ -105,15 +107,39 @@ const rules = {
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
-const initFormFromRoute = () => {
-  form.id = Number(route.params.id)
-  form.customerCode = route.query.customerCode || ''
-  form.customerName = route.query.customerName || ''
-  form.contactPerson = route.query.contactPerson || ''
-  form.phone = route.query.phone || ''
-  form.address = route.query.address || ''
-  form.remark = route.query.remark || ''
-  form.status = Number(route.query.status ?? 1)
+const loadCustomerDetail = async () => {
+  const id = Number(route.params.id)
+  if (!id) {
+    ElMessage.error('客户ID无效')
+    router.push('/customer/list')
+    return
+  }
+
+  form.id = id
+  loading.value = true
+  try {
+    const res = await getCustomerDetail(id)
+    if (!res.data || res.data.code !== 1 || !res.data.data) {
+      ElMessage.error(res.data?.message || '加载客户详情失败')
+      router.push('/customer/list')
+      return
+    }
+
+    const detail = res.data.data
+    form.customerCode = detail.customerCode || ''
+    form.customerName = detail.customerName || ''
+    form.contactPerson = detail.contactPerson || ''
+    form.phone = detail.phone || ''
+    form.address = detail.address || ''
+    form.remark = detail.remark || ''
+    form.status = Number(detail.status ?? 1)
+  } catch (error) {
+    console.error('加载客户详情失败:', error)
+    ElMessage.error('请求客户详情接口失败')
+    router.push('/customer/list')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleBack = () => {
@@ -152,7 +178,7 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  initFormFromRoute()
+  loadCustomerDetail()
 })
 </script>
 

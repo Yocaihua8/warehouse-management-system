@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.UserMapper">
+
+    <select id="selectByUsername" resultType="com.yocaihua.wms.entity.User">
+        SELECT
+        id,
+        username,
+        password,
+        nickname,
+        status,
+        role
+        FROM user
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectAll" resultType="com.yocaihua.wms.entity.User">
+        SELECT
+        id,
+        username,
+        password,
+        nickname,
+        status,
+        role
+        FROM user
+    </select>
+
+    <update id="updatePasswordById">
+        UPDATE user
+        SET password = #{password}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectPage" resultType="com.yocaihua.wms.entity.User">
+        SELECT
+        id,
+        username,
+        nickname,
+        status,
+        role
+        FROM user
+        <where>
+            <if test="username != null and username != ''">
+                username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="nickname != null and nickname != ''">
+                <if test="username != null and username != ''">
+                    AND
+                </if>
+                nickname LIKE CONCAT('%', #{nickname}, '%')
+            </if>
+        </where>
+        ORDER BY id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM user
+        <where>
+            <if test="username != null and username != ''">
+                username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="nickname != null and nickname != ''">
+                <if test="username != null and username != ''">
+                    AND
+                </if>
+                nickname LIKE CONCAT('%', #{nickname}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultType="com.yocaihua.wms.entity.User">
+        SELECT
+        id,
+        username,
+        password,
+        nickname,
+        status,
+        role
+        FROM user
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (
+        username,
+        password,
+        nickname,
+        status,
+        role
+        ) VALUES (
+        #{username},
+        #{password},
+        #{nickname},
+        #{status},
+        #{role}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.yocaihua.wms.entity.User">
+        UPDATE user
+        SET
+        nickname = #{nickname},
+        status = #{status},
+        role = #{role}
+        <if test="password != null and password != ''">
+            ,password = #{password}
+        </if>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM user
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

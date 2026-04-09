@@ -1,9 +1,4 @@
-import axios from 'axios'
-
-const request = axios.create({
-    baseURL: 'http://localhost:8080',
-    timeout: 5000
-})
+import request from '../utils/request'
 
 export const getProductList = (params) => {
     return request({
@@ -23,7 +18,7 @@ export const addProduct = (data) => {
 
 export const getProductDetail = (id) => {
     return request({
-        url: `/product/detail/${id}`,
+        url: `/product/${id}`,
         method: 'get'
     })
 }

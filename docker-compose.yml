@@ -1,0 +1,79 @@
+name: wms-local
+
+services:
+  redis:
+    image: redis:7
+    container_name: wms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    container_name: wms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wms
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  python-ai-service:
+    build:
+      context: ./python-ai-service
+      dockerfile: Dockerfile
+    container_name: wms-python-ai
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      TZ: Asia/Shanghai
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wms-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      python-ai-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      DB_URL: jdbc:mysql://mysql:3306/wms?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AI_PYTHON_BASE_URL: http://python-ai-service:9000
+      AUTH_SESSION_STORE: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379

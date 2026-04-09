@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/wms?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    # 推荐通过环境变量传入，不要在此文件写明文密码
+    # 启动命令示例：DB_USERNAME=root DB_PASSWORD=yourpwd mvn spring-boot:run
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+app:
+  cors:
+    # 多个来源用逗号分隔；默认已支持 localhost / 127.0.0.1 任意端口
+    # 例如：http://localhost:5173,http://localhost:4173,http://127.0.0.1:3000
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
+# Redis 会话配置（可选）
+# 1) 默认会话存储仍为数据库：AUTH_SESSION_STORE=db
+# 2) 切换 Redis 会话：AUTH_SESSION_STORE=redis，并配置 REDIS_HOST/REDIS_PORT
+
+# 低库存通知配置（可选）
+# 启用：LOW_STOCK_ALERT_ENABLED=true
+# 邮件渠道：LOW_STOCK_ALERT_MAIL_ENABLED=true + LOW_STOCK_ALERT_MAIL_TO=xxx@example.com
+# Webhook渠道：LOW_STOCK_ALERT_WEBHOOK_ENABLED=true + LOW_STOCK_ALERT_WEBHOOK_URL=https://xxx
+# 定时表达式：LOW_STOCK_ALERT_CRON=0 */30 * * * *
