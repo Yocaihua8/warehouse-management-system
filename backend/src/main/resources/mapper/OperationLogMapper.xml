@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.OperationLogMapper">
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.OperationLog">
+        INSERT INTO operation_log
+        (
+        action_type,
+        module_name,
+        biz_type,
+        biz_id,
+        biz_no,
+        operator_name,
+        result_status,
+        message
+        )
+        VALUES
+        (
+        #{actionType},
+        #{moduleName},
+        #{bizType},
+        #{bizId},
+        #{bizNo},
+        #{operatorName},
+        #{resultStatus},
+        #{message}
+        )
+    </insert>
+
+    <select id="countLog" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM operation_log
+        <where>
+            <if test="actionType != null and actionType != ''">
+                AND action_type = #{actionType}
+            </if>
+            <if test="moduleName != null and moduleName != ''">
+                AND module_name LIKE CONCAT('%', #{moduleName}, '%')
+            </if>
+            <if test="operatorName != null and operatorName != ''">
+                AND operator_name LIKE CONCAT('%', #{operatorName}, '%')
+            </if>
+            <if test="resultStatus != null and resultStatus != ''">
+                AND result_status = #{resultStatus}
+            </if>
+            <if test="bizNo != null and bizNo != ''">
+                AND biz_no LIKE CONCAT('%', #{bizNo}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectLogPage" resultType="com.yocaihua.wms.vo.OperationLogVO">
+        SELECT
+        id,
+        action_type,
+        module_name,
+        biz_type,
+        biz_id,
+        biz_no,
+        operator_name,
+        result_status,
+        message,
+        created_time
+        FROM operation_log
+        <where>
+            <if test="actionType != null and actionType != ''">
+                AND action_type = #{actionType}
+            </if>
+            <if test="moduleName != null and moduleName != ''">
+                AND module_name LIKE CONCAT('%', #{moduleName}, '%')
+            </if>
+            <if test="operatorName != null and operatorName != ''">
+                AND operator_name LIKE CONCAT('%', #{operatorName}, '%')
+            </if>
+            <if test="resultStatus != null and resultStatus != ''">
+                AND result_status = #{resultStatus}
+            </if>
+            <if test="bizNo != null and bizNo != ''">
+                AND biz_no LIKE CONCAT('%', #{bizNo}, '%')
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>
+

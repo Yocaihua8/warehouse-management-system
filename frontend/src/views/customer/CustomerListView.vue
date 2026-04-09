@@ -105,6 +105,20 @@ const queryForm = reactive({
   customerName: ''
 })
 
+const parsePageData = (payload) => {
+  if (Array.isArray(payload)) {
+    return {
+      list: payload,
+      total: payload.length
+    }
+  }
+
+  return {
+    list: Array.isArray(payload?.list) ? payload.list : [],
+    total: typeof payload?.total === 'number' ? payload.total : 0
+  }
+}
+
 const loadCustomerList = async () => {
   loading.value = true
   try {
@@ -116,19 +130,17 @@ const loadCustomerList = async () => {
     })
 
     if (res.data && res.data.code === 1) {
-      const data = res.data.data
-
-      if (Array.isArray(data)) {
-        tableData.value = data
-        total.value = data.length
-      } else {
-        tableData.value = data?.list || []
-        total.value = data?.total || 0
-      }
+      const pageData = parsePageData(res.data.data)
+      tableData.value = pageData.list
+      total.value = pageData.total
     } else {
+      tableData.value = []
+      total.value = 0
       ElMessage.error(res.data?.message || '查询客户列表失败')
     }
   } catch (error) {
+    tableData.value = []
+    total.value = 0
     console.error('加载客户列表失败:', error)
     ElMessage.error('请求客户列表接口失败')
   } finally {

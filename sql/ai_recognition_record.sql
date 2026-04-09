@@ -1,0 +1,21 @@
+CREATE TABLE ai_recognition_record (
+                                       id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+                                       task_no VARCHAR(64) NOT NULL COMMENT '识别任务编号',
+                                       doc_type VARCHAR(32) NOT NULL COMMENT '单据类型：inbound',
+                                       source_file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+                                       source_file_path VARCHAR(500) DEFAULT NULL COMMENT '文件存储路径',
+                                       recognition_status VARCHAR(32) NOT NULL COMMENT '识别状态：pending/success/failed/confirmed',
+                                       supplier_name VARCHAR(255) DEFAULT NULL COMMENT '识别出的供应商名称',
+                                       raw_text TEXT COMMENT 'OCR原始文本',
+                                       warnings_json TEXT COMMENT '警告信息JSON',
+                                       result_json LONGTEXT COMMENT '结构化识别结果JSON备份',
+                                       error_message VARCHAR(500) DEFAULT NULL COMMENT '失败原因',
+                                       confirmed_order_id BIGINT DEFAULT NULL COMMENT '确认后生成的正式入库单ID',
+                                       created_by VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+                                       created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                       updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                       UNIQUE KEY uk_task_no (task_no),
+                                       KEY idx_status (recognition_status),
+                                       KEY idx_doc_type (doc_type),
+                                       KEY idx_confirmed_order_id (confirmed_order_id)
+) COMMENT='AI识别任务主表';

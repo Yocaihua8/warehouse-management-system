@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.CustomerMapper">
+
+    <select id="selectPage" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        <where>
+            <if test="customerCode != null and customerCode != ''">
+                customer_code LIKE CONCAT('%', #{customerCode}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                <if test="customerCode != null and customerCode != ''">
+                    AND
+                </if>
+                (
+                customer_name LIKE CONCAT('%', #{customerName}, '%')
+                OR contact_person LIKE CONCAT('%', #{customerName}, '%')
+                OR phone LIKE CONCAT('%', #{customerName}, '%')
+                OR address LIKE CONCAT('%', #{customerName}, '%')
+                OR remark LIKE CONCAT('%', #{customerName}, '%')
+                OR customer_code LIKE CONCAT('%', #{customerName}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM customer
+        <where>
+            <if test="customerCode != null and customerCode != ''">
+                customer_code LIKE CONCAT('%', #{customerCode}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                <if test="customerCode != null and customerCode != ''">
+                    AND
+                </if>
+                (
+                customer_name LIKE CONCAT('%', #{customerName}, '%')
+                OR contact_person LIKE CONCAT('%', #{customerName}, '%')
+                OR phone LIKE CONCAT('%', #{customerName}, '%')
+                OR address LIKE CONCAT('%', #{customerName}, '%')
+                OR remark LIKE CONCAT('%', #{customerName}, '%')
+                OR customer_code LIKE CONCAT('%', #{customerName}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="selectExportList" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        <where>
+            <if test="customerCode != null and customerCode != ''">
+                customer_code LIKE CONCAT('%', #{customerCode}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                <if test="customerCode != null and customerCode != ''">
+                    AND
+                </if>
+                (
+                customer_name LIKE CONCAT('%', #{customerName}, '%')
+                OR contact_person LIKE CONCAT('%', #{customerName}, '%')
+                OR phone LIKE CONCAT('%', #{customerName}, '%')
+                OR address LIKE CONCAT('%', #{customerName}, '%')
+                OR remark LIKE CONCAT('%', #{customerName}, '%')
+                OR customer_code LIKE CONCAT('%', #{customerName}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectById" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCustomerCode" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        WHERE customer_code = #{customerCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectByName" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        WHERE customer_name = #{customerName}
+        LIMIT 1
+    </select>
+
+    <select id="selectByNameLike" resultType="com.yocaihua.wms.entity.Customer">
+        SELECT
+        id,
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status,
+        created_time,
+        updated_time
+        FROM customer
+        WHERE customer_name LIKE CONCAT('%', #{customerName}, '%')
+        ORDER BY id ASC
+    </select>
+
+    <insert id="insert" parameterType="com.yocaihua.wms.dto.CustomerAddDTO">
+        INSERT INTO customer (
+        customer_code,
+        customer_name,
+        contact_person,
+        phone,
+        address,
+        remark,
+        status
+        ) VALUES (
+        #{customerCode},
+        #{customerName},
+        #{contactPerson},
+        #{phone},
+        #{address},
+        #{remark},
+        #{status}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.yocaihua.wms.dto.CustomerUpdateDTO">
+        UPDATE customer
+        SET
+        customer_code = #{customerCode},
+        customer_name = #{customerName},
+        contact_person = #{contactPerson},
+        phone = #{phone},
+        address = #{address},
+        remark = #{remark},
+        status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM customer
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

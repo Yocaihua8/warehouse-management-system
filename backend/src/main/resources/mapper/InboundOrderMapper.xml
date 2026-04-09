@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.InboundOrderMapper">
+
+    <insert id="insert" parameterType="com.yocaihua.wms.entity.InboundOrder"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inbound_order (
+        order_no,
+        supplier_id,
+        supplier_name,
+        total_amount,
+        order_status,
+        remark
+        ) VALUES (
+        #{orderNo},
+        #{supplierId},
+        #{supplierName},
+        #{totalAmount},
+        #{orderStatus},
+        #{remark}
+        )
+    </insert>
+
+    <select id="selectPage" resultType="com.yocaihua.wms.vo.InboundOrderVO">
+        SELECT
+        io.id,
+        io.order_no AS orderNo,
+        io.supplier_id AS supplierId,
+        io.supplier_name AS supplierName,
+        io.total_amount AS totalAmount,
+        io.order_status AS orderStatus,
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM ai_recognition_record air
+                WHERE air.doc_type = 'inbound'
+                  AND air.confirmed_order_id = io.id
+            ) THEN 'AI'
+            ELSE 'MANUAL'
+        END AS sourceType,
+        io.remark,
+        io.created_time AS createdTime
+        FROM inbound_order io
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                io.order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+            <if test="sourceType != null and sourceType != ''">
+                <choose>
+                    <when test="sourceType == 'AI'">
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ai_recognition_record air
+                            WHERE air.doc_type = 'inbound'
+                              AND air.confirmed_order_id = io.id
+                        )
+                    </when>
+                    <when test="sourceType == 'MANUAL'">
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM ai_recognition_record air
+                            WHERE air.doc_type = 'inbound'
+                              AND air.confirmed_order_id = io.id
+                        )
+                    </when>
+                </choose>
+            </if>
+            <if test="orderStatus != null">
+                AND io.order_status = #{orderStatus}
+            </if>
+        </where>
+        ORDER BY io.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM inbound_order io
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                io.order_no LIKE CONCAT('%', #{orderNo}, '%')
+            </if>
+            <if test="sourceType != null and sourceType != ''">
+                <choose>
+                    <when test="sourceType == 'AI'">
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ai_recognition_record air
+                            WHERE air.doc_type = 'inbound'
+                              AND air.confirmed_order_id = io.id
+                        )
+                    </when>
+                    <when test="sourceType == 'MANUAL'">
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM ai_recognition_record air
+                            WHERE air.doc_type = 'inbound'
+                              AND air.confirmed_order_id = io.id
+                        )
+                    </when>
+                </choose>
+            </if>
+            <if test="orderStatus != null">
+                AND io.order_status = #{orderStatus}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectDetailById" resultType="com.yocaihua.wms.vo.InboundOrderDetailVO">
+        SELECT
+        io.id,
+        io.order_no AS orderNo,
+        io.supplier_id AS supplierId,
+        io.supplier_name AS supplierName,
+        io.total_amount AS totalAmount,
+        io.order_status AS orderStatus,
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM ai_recognition_record air
+                WHERE air.doc_type = 'inbound'
+                  AND air.confirmed_order_id = io.id
+            ) THEN 'AI'
+            ELSE 'MANUAL'
+        END AS sourceType,
+        (
+            SELECT air.id
+            FROM ai_recognition_record air
+            WHERE air.doc_type = 'inbound'
+              AND air.confirmed_order_id = io.id
+            ORDER BY air.id DESC
+            LIMIT 1
+        ) AS aiRecordId,
+        (
+            SELECT air.task_no
+            FROM ai_recognition_record air
+            WHERE air.doc_type = 'inbound'
+              AND air.confirmed_order_id = io.id
+            ORDER BY air.id DESC
+            LIMIT 1
+        ) AS aiTaskNo,
+        (
+            SELECT air.source_file_name
+            FROM ai_recognition_record air
+            WHERE air.doc_type = 'inbound'
+              AND air.confirmed_order_id = io.id
+            ORDER BY air.id DESC
+            LIMIT 1
+        ) AS aiSourceFileName,
+        io.remark,
+        io.created_time AS createdTime
+        FROM inbound_order io
+        WHERE io.id = #{id}
+    </select>
+
+    <select id="selectById" resultType="com.yocaihua.wms.entity.InboundOrder">
+        select id,
+        order_no,
+        supplier_id,
+        supplier_name,
+        total_amount,
+        remark,
+        order_status,
+        created_time,
+        updated_time
+        from inbound_order
+        where id = #{id}
+    </select>
+
+    <select id="countBySupplierId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM inbound_order
+        WHERE supplier_id = #{supplierId}
+    </select>
+
+    <select id="countBySupplierNameWhenSupplierIdMissing" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM inbound_order
+        WHERE supplier_id IS NULL
+          AND supplier_name = #{supplierName}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE inbound_order
+        SET order_status = #{targetStatus}
+        WHERE id = #{id}
+          AND order_status = #{sourceStatus}
+    </update>
+
+    <update id="updateDraftById">
+        UPDATE inbound_order
+        SET supplier_id = #{supplierId},
+            supplier_name = #{supplierName},
+            total_amount = #{totalAmount},
+            remark = #{remark}
+        WHERE id = #{id}
+          AND order_status = #{sourceStatus}
+    </update>
+
+</mapper>

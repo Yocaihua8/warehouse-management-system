@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yocaihua.wms.mapper.DashboardMapper">
+
+    <select id="countProduct" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM product
+    </select>
+
+    <select id="countCustomer" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM customer
+    </select>
+
+    <select id="countStockProduct" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM stock
+    </select>
+
+    <select id="countLowStock" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM stock
+        WHERE quantity &lt;= warning_quantity
+    </select>
+
+    <select id="countInboundOrder" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM inbound_order
+    </select>
+
+    <select id="countOutboundOrder" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM outbound_order
+    </select>
+
+    <select id="selectInboundDailyCount" resultType="com.yocaihua.wms.vo.DashboardDailyCountRowVO">
+        SELECT
+        DATE_FORMAT(created_time, '%Y-%m-%d') AS statDate,
+        COUNT(*) AS total
+        FROM inbound_order
+        WHERE order_status = 2
+          AND DATE(created_time) <![CDATA[>=]]> #{startDate}
+        GROUP BY DATE_FORMAT(created_time, '%Y-%m-%d')
+        ORDER BY DATE_FORMAT(created_time, '%Y-%m-%d') ASC
+    </select>
+
+    <select id="selectOutboundDailyCount" resultType="com.yocaihua.wms.vo.DashboardDailyCountRowVO">
+        SELECT
+        DATE_FORMAT(created_time, '%Y-%m-%d') AS statDate,
+        COUNT(*) AS total
+        FROM outbound_order
+        WHERE order_status = 2
+          AND DATE(created_time) <![CDATA[>=]]> #{startDate}
+        GROUP BY DATE_FORMAT(created_time, '%Y-%m-%d')
+        ORDER BY DATE_FORMAT(created_time, '%Y-%m-%d') ASC
+    </select>
+
+</mapper>

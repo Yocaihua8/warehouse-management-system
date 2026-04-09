@@ -58,6 +58,17 @@
           </el-col>
 
           <el-col :span="24">
+            <el-form-item label="自定义字段" prop="customFieldsJson">
+              <el-input
+                  v-model="form.customFieldsJson"
+                  type="textarea"
+                  :rows="4"
+                  placeholder='请输入JSON对象，如 {"brand":"A牌","origin":"温州"}'
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
             <el-form-item label="备注" prop="remark">
               <el-input
                   v-model="form.remark"
@@ -103,9 +114,32 @@ const form = reactive({
   unit: '',
   category: '',
   salePrice: 0,
+  customFieldsJson: '',
   remark: '',
   status: 1
 })
+
+const validateCustomFieldsJson = (_rule, value, callback) => {
+  const text = (value || '').trim()
+  if (!text) {
+    callback()
+    return
+  }
+  if (text.length > 4000) {
+    callback(new Error('自定义字段长度不能超过4000个字符'))
+    return
+  }
+  try {
+    const parsed = JSON.parse(text)
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+      callback(new Error('自定义字段必须是JSON对象'))
+      return
+    }
+    callback()
+  } catch (e) {
+    callback(new Error('自定义字段不是合法JSON'))
+  }
+}
 
 const rules = {
   productCode: [{ required: true, message: '请输入商品编码', trigger: 'blur' }],
@@ -114,6 +148,7 @@ const rules = {
   unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
   category: [{ required: true, message: '请输入分类', trigger: 'blur' }],
   salePrice: [{ required: true, message: '请输入销售价', trigger: 'change' }],
+  customFieldsJson: [{ validator: validateCustomFieldsJson, trigger: 'blur' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
@@ -135,6 +170,7 @@ const handleSubmit = async () => {
         unit: form.unit,
         category: form.category,
         salePrice: form.salePrice,
+        customFieldsJson: form.customFieldsJson,
         remark: form.remark,
         status: form.status
       })

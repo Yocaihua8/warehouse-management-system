@@ -1,0 +1,96 @@
+server:
+  port: 8080
+
+app:
+  display-name: 仓库管理系统
+  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+  cors:
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
+spring:
+  application:
+    name: warehouse-management-system
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://localhost:3306/wms?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  cache:
+    type: caffeine
+    cache-names: dashboardSummary,dashboardTrend
+    caffeine:
+      spec: initialCapacity=10,maximumSize=100,expireAfterWrite=30s
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:3s}
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:25}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.yocaihua.wms.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.yocaihua.wms: debug
+
+ai:
+  python:
+    base-url: ${AI_PYTHON_BASE_URL:http://127.0.0.1:9000}
+    connect-timeout-ms: 10000
+    read-timeout-ms: 60000
+
+auth:
+  session-timeout-minutes: 10080
+  session-store: ${AUTH_SESSION_STORE:db}
+  redis:
+    key-prefix: ${AUTH_REDIS_KEY_PREFIX:wms:session:}
+
+low-stock-alert:
+  enabled: ${LOW_STOCK_ALERT_ENABLED:false}
+  cron: ${LOW_STOCK_ALERT_CRON:0 */30 * * * *}
+  cooldown-minutes: ${LOW_STOCK_ALERT_COOLDOWN_MINUTES:60}
+  max-items-in-message: ${LOW_STOCK_ALERT_MAX_ITEMS_IN_MESSAGE:20}
+  mail:
+    enabled: ${LOW_STOCK_ALERT_MAIL_ENABLED:false}
+    to: ${LOW_STOCK_ALERT_MAIL_TO:}
+    subject-prefix: ${LOW_STOCK_ALERT_MAIL_SUBJECT_PREFIX:[WMS低库存预警]}
+  webhook:
+    enabled: ${LOW_STOCK_ALERT_WEBHOOK_ENABLED:false}
+    url: ${LOW_STOCK_ALERT_WEBHOOK_URL:}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  info:
+    title: 仓库管理系统 API
+    version: 1.0.0

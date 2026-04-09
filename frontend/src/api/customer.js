@@ -1,9 +1,4 @@
-import axios from 'axios'
-
-const request = axios.create({
-    baseURL: 'http://localhost:8080',
-    timeout: 5000
-})
+import request from '../utils/request'
 
 export const getCustomerList = (params) => {
     return request({
@@ -18,6 +13,13 @@ export const addCustomer = (data) => {
         url: '/customer/add',
         method: 'post',
         data
+    })
+}
+
+export const getCustomerDetail = (id) => {
+    return request({
+        url: `/customer/${id}`,
+        method: 'get'
     })
 }
 
