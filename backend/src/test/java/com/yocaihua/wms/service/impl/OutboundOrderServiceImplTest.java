@@ -4,8 +4,12 @@ import com.yocaihua.wms.common.BusinessException;
 import com.yocaihua.wms.common.CurrentUserContext;
 import com.yocaihua.wms.common.OrderStatusConstant;
 import com.yocaihua.wms.common.StockChangeTypeConstant;
+import com.yocaihua.wms.dto.OutboundOrderAddDTO;
+import com.yocaihua.wms.dto.OutboundOrderItemAddDTO;
+import com.yocaihua.wms.entity.Customer;
 import com.yocaihua.wms.entity.OutboundOrder;
 import com.yocaihua.wms.entity.OutboundOrderItem;
+import com.yocaihua.wms.entity.Product;
 import com.yocaihua.wms.mapper.CustomerMapper;
 import com.yocaihua.wms.mapper.OutboundOrderItemMapper;
 import com.yocaihua.wms.mapper.OutboundOrderMapper;
@@ -13,6 +17,7 @@ import com.yocaihua.wms.mapper.ProductMapper;
 import com.yocaihua.wms.mapper.StockMapper;
 import com.yocaihua.wms.service.OperationLogService;
 import com.yocaihua.wms.service.StockFlowService;
+import com.yocaihua.wms.vo.StockVO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -143,5 +150,86 @@ class OutboundOrderServiceImplTest {
                 eq("原单备注：old remark；作废原因：客户退货")
         );
         verify(outboundOrderMapper).updateStatus(400L, OrderStatusConstant.OUTBOUND_VOID, OrderStatusConstant.OUTBOUND_COMPLETED);
+    }
+
+    @Test
+    void updateOutboundOrderDraft_shouldReplaceItemsAndUpdateHeader_whenDraft() {
+        OutboundOrder existing = new OutboundOrder();
+        existing.setId(500L);
+        existing.setOrderStatus(OrderStatusConstant.OUTBOUND_DRAFT);
+
+        OutboundOrderAddDTO dto = new OutboundOrderAddDTO();
+        dto.setCustomerId(66L);
+        dto.setRemark("更新出库草稿");
+
+        OutboundOrderItemAddDTO itemDTO = new OutboundOrderItemAddDTO();
+        itemDTO.setProductId(11L);
+        itemDTO.setQuantity(2);
+        itemDTO.setUnitPrice(new BigDecimal("15.00"));
+        itemDTO.setRemark("出库明细");
+        dto.setItemList(List.of(itemDTO));
+
+        Customer customer = new Customer();
+        customer.setId(66L);
+        customer.setCustomerName("客户A");
+        customer.setStatus(1);
+
+        Product product = new Product();
+        product.setId(11L);
+        product.setProductName("商品B");
+        product.setSpecification("1L");
+        product.setUnit("瓶");
+
+        StockVO stock = new StockVO();
+        stock.setProductId(11L);
+        stock.setQuantity(100);
+
+        when(outboundOrderMapper.selectById(500L)).thenReturn(existing);
+        when(customerMapper.selectById(66L)).thenReturn(customer);
+        when(productMapper.selectById(11L)).thenReturn(product);
+        when(stockMapper.selectByProductId(11L)).thenReturn(stock);
+        when(outboundOrderMapper.updateDraftById(
+                eq(500L),
+                eq(66L),
+                eq("客户A"),
+                eq(new BigDecimal("30.00")),
+                eq("更新出库草稿"),
+                eq(OrderStatusConstant.OUTBOUND_DRAFT)
+        )).thenReturn(1);
+        when(outboundOrderItemMapper.insert(any(OutboundOrderItem.class))).thenReturn(1);
+
+        String result = outboundOrderService.updateOutboundOrderDraft(500L, dto);
+
+        assertEquals("更新出库草稿成功", result);
+        verify(outboundOrderItemMapper).deleteByOutboundOrderId(500L);
+        verify(outboundOrderItemMapper).insert(any(OutboundOrderItem.class));
+    }
+
+    @Test
+    void confirmOutboundOrder_shouldThrow_whenStockInsufficient() {
+        CurrentUserContext.setRole("ADMIN");
+        CurrentUserContext.setUsername("tester");
+
+        OutboundOrder order = new OutboundOrder();
+        order.setId(600L);
+        order.setOrderNo("OUT600");
+        order.setOrderStatus(OrderStatusConstant.OUTBOUND_DRAFT);
+
+        OutboundOrderItem item = new OutboundOrderItem();
+        item.setOutboundOrderId(600L);
+        item.setProductId(12L);
+        item.setQuantity(999);
+
+        when(outboundOrderMapper.selectById(600L)).thenReturn(order);
+        when(outboundOrderItemMapper.selectEntityListByOutboundOrderId(600L)).thenReturn(List.of(item));
+        doThrow(new BusinessException("库存不足，无法出库"))
+                .when(stockFlowService)
+                .decreaseByOutbound(any(), any(), any(), any(), any(), any());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> outboundOrderService.confirmOutboundOrder(600L));
+
+        assertEquals("库存不足，无法出库", exception.getMessage());
+        verify(outboundOrderMapper, never()).updateStatus(any(), any(), any());
+        verify(operationLogService, never()).recordSuccess(any(), any(), any(), any(), any(), any(), any());
     }
 }

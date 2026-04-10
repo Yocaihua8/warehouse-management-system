@@ -1,13 +1,12 @@
 package com.yocaihua.wms.service;
 
+import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.dto.AiInboundConfirmDTO;
 import com.yocaihua.wms.dto.AiOutboundConfirmDTO;
 import com.yocaihua.wms.vo.AiInboundRecognizeVO;
 import com.yocaihua.wms.vo.AiOutboundRecognizeVO;
 import com.yocaihua.wms.vo.AiRecognitionRecordVO;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 public interface AiRecognitionService {
 
@@ -19,11 +18,11 @@ public interface AiRecognitionService {
 
     Long confirmOutbound(AiOutboundConfirmDTO dto, String operator);
 
-    List<AiRecognitionRecordVO> listInboundRecords();
+    PageResult<AiRecognitionRecordVO> listInboundRecords(Integer pageNum, Integer pageSize);
 
     AiInboundRecognizeVO getInboundRecordDetail(Long recordId);
 
-    List<AiRecognitionRecordVO> listOutboundRecords();
+    PageResult<AiRecognitionRecordVO> listOutboundRecords(Integer pageNum, Integer pageSize);
 
     AiOutboundRecognizeVO getOutboundRecordDetail(Long recordId);
 }

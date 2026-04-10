@@ -11,6 +11,9 @@ import ProductListView from '../views/product/ProductListView.vue'
 import CustomerListView from '../views/customer/CustomerListView.vue'
 import CustomerCreateView from '../views/customer/CustomerCreateView.vue'
 import CustomerUpdateView from '../views/customer/CustomerUpdateView.vue'
+import SupplierListView from '../views/supplier/SupplierListView.vue'
+import SupplierCreateView from '../views/supplier/SupplierCreateView.vue'
+import SupplierUpdateView from '../views/supplier/SupplierUpdateView.vue'
 import UserListView from '../views/user/UserListView.vue'
 import StockListView from '../views/stock/StockListView.vue'
 import OutboundCreateView from '../views/outbound/OutboundCreateView.vue'
@@ -100,6 +103,21 @@ const routes = [
                 path: 'customer/update/:id',
                 name: 'CustomerUpdate',
                 component: CustomerUpdateView
+            },
+            {
+                path: 'supplier/list',
+                name: 'SupplierList',
+                component: SupplierListView
+            },
+            {
+                path: 'supplier/create',
+                name: 'SupplierCreate',
+                component: SupplierCreateView
+            },
+            {
+                path: 'supplier/update/:id',
+                name: 'SupplierUpdate',
+                component: SupplierUpdateView
             },
             {
                 path: 'user/list',

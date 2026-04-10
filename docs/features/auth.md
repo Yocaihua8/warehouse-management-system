@@ -112,17 +112,18 @@ LoginInterceptor.preHandle()
 | `/supplier/update` | PUT | 修改供应商 |
 | `/supplier/delete/{id}` | DELETE | 删除供应商 |
 | `/stock/update` | PUT | 手动调整库存 |
+| `/stock/low-alert/trigger` | POST | 手动触发低库存预警 |
 | `/inbound-order/{id}/confirm` | POST | 确认入库 |
 | `/inbound-order/{id}/void` | POST | 作废入库单 |
 | `/outbound-order/{id}/confirm` | POST | 确认出库 |
 | `/outbound-order/{id}/void` | POST | 作废出库单 |
 | `/ai/inbound/confirm` | POST | AI 入库确认 |
 | `/ai/outbound/confirm` | POST | AI 出库确认 |
-| `/user/add` | POST | 新增系统用户 |
-| `/user/update` | PUT | 修改系统用户 |
-| `/user/delete/{id}` | DELETE | 删除系统用户 |
+| `/operation/log/list` | GET | 操作日志查询 |
 
 > 此列表是权限控制的**权威来源**，新增 Admin-only 接口时必须同步更新此列表和 `LoginInterceptor`。
+>
+> ⚠️ **已知缺口**：`/user/add`、`/user/update`、`/user/delete/{id}` 三个用户管理接口当前在 `LoginInterceptor` 中**未受保护**，任何登录用户均可调用。修复见 BACKLOG B4。
 
 ---
 

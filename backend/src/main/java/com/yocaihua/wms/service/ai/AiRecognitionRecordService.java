@@ -1,6 +1,7 @@
 package com.yocaihua.wms.service.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.common.BusinessException;
 import com.yocaihua.wms.entity.AiRecognitionItem;
 import com.yocaihua.wms.entity.AiRecognitionRecord;
@@ -55,12 +56,24 @@ public class AiRecognitionRecordService {
         return aiRecognitionItemMapper.selectByRecordId(recordId);
     }
 
-    public List<AiRecognitionRecordVO> listInboundRecords() {
-        return aiRecognitionRecordMapper.selectInboundRecordList();
+    public PageResult<AiRecognitionRecordVO> listInboundRecords(Integer pageNum, Integer pageSize) {
+        int currentPage = normalizePageNum(pageNum);
+        int currentSize = normalizePageSize(pageSize);
+        int offset = (currentPage - 1) * currentSize;
+
+        Long total = aiRecognitionRecordMapper.countInboundRecords();
+        List<AiRecognitionRecordVO> list = aiRecognitionRecordMapper.selectInboundRecordPage(offset, currentSize);
+        return new PageResult<>(total, currentPage, currentSize, list);
     }
 
-    public List<AiRecognitionRecordVO> listOutboundRecords() {
-        return aiRecognitionRecordMapper.selectOutboundRecordList();
+    public PageResult<AiRecognitionRecordVO> listOutboundRecords(Integer pageNum, Integer pageSize) {
+        int currentPage = normalizePageNum(pageNum);
+        int currentSize = normalizePageSize(pageSize);
+        int offset = (currentPage - 1) * currentSize;
+
+        Long total = aiRecognitionRecordMapper.countOutboundRecords();
+        List<AiRecognitionRecordVO> list = aiRecognitionRecordMapper.selectOutboundRecordPage(offset, currentSize);
+        return new PageResult<>(total, currentPage, currentSize, list);
     }
 
     public AiInboundRecognizeVO getInboundRecordDetail(Long recordId) {
@@ -337,5 +350,20 @@ public class AiRecognitionRecordService {
         }
         String message = e.getMessage().trim();
         return message.length() > 200 ? message.substring(0, 200) : message;
+    }
+
+    private int normalizePageNum(Integer pageNum) {
+        if (pageNum == null || pageNum < 1) {
+            return 1;
+        }
+        return pageNum;
+    }
+
+    private int normalizePageSize(Integer pageSize) {
+        int maxPageSize = 200;
+        if (pageSize == null || pageSize < 1) {
+            return 10;
+        }
+        return Math.min(pageSize, maxPageSize);
     }
 }

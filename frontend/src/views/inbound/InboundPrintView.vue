@@ -1,25 +1,21 @@
 <template>
   <PrintTemplate
     :loading="loading"
-    title="采购入库单"
-    warehouse-label="入库仓库"
-    warehouse-name="总仓库"
-    party-label="供货单位"
-    :party-name="detail.supplierName"
-    :detail="detail"
+    :print-data="printData"
     row-key="in-print"
-    :show-source-meta="true"
     :detail-row-height="52"
     :detail-row-no-wrap="true"
   />
 </template>
 
 <script setup>
-import { nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
 import { getInboundOrderDetail } from '../../api/inbound'
 import PrintTemplate from '../../components/print/PrintTemplate.vue'
+import { buildInboundPrintData } from '../../utils/printAdapter'
+import { triggerBrowserPrint } from '../../utils/printService'
 
 const route = useRoute()
 const loading = ref(false)
@@ -38,11 +34,12 @@ const detail = reactive({
   itemList: []
 })
 
+const printData = computed(() => buildInboundPrintData(detail))
+
 const triggerPrintOnce = async () => {
   if (printed.value) return
   printed.value = true
-  await nextTick()
-  setTimeout(() => window.print(), 200)
+  await triggerBrowserPrint(200)
 }
 
 const loadDetail = async () => {

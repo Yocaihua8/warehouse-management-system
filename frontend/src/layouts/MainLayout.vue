@@ -22,6 +22,10 @@
           <span>客户管理</span>
         </el-menu-item>
 
+        <el-menu-item index="/supplier/list">
+          <span>供应商管理</span>
+        </el-menu-item>
+
         <el-menu-item v-if="isAdmin" index="/user/list">
           <span>用户管理</span>
         </el-menu-item>
@@ -104,6 +108,7 @@ const pageTitle = computed(() => {
   if (path === '/') return '首页'
   if (path.startsWith('/product')) return '商品管理'
   if (path.startsWith('/customer')) return '客户管理'
+  if (path.startsWith('/supplier')) return '供应商管理'
   if (path.startsWith('/user')) return '用户管理'
   if (path === '/stock/log/list') return '库存流水'
   if (path === '/operation/log/list') return '操作日志'

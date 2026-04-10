@@ -100,7 +100,13 @@
         WHERE task_no = #{taskNo}
     </select>
 
-    <select id="selectInboundRecordList" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
+    <select id="countInboundRecords" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM ai_recognition_record
+        WHERE doc_type = 'inbound'
+    </select>
+
+    <select id="selectInboundRecordPage" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
         SELECT
         air.id,
         air.task_no AS taskNo,
@@ -115,9 +121,16 @@
         LEFT JOIN inbound_order io ON air.confirmed_order_id = io.id
         WHERE air.doc_type = 'inbound'
         ORDER BY air.id DESC
+        LIMIT #{offset}, #{pageSize}
     </select>
 
-    <select id="selectOutboundRecordList" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
+    <select id="countOutboundRecords" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM ai_recognition_record
+        WHERE doc_type = 'outbound'
+    </select>
+
+    <select id="selectOutboundRecordPage" resultType="com.yocaihua.wms.vo.AiRecognitionRecordVO">
         SELECT
         air.id,
         air.task_no AS taskNo,
@@ -132,6 +145,7 @@
         LEFT JOIN outbound_order oo ON air.confirmed_order_id = oo.id
         WHERE air.doc_type = 'outbound'
         ORDER BY air.id DESC
+        LIMIT #{offset}, #{pageSize}
     </select>
 
     <update id="updateStatus">

@@ -1,29 +1,30 @@
 <template>
   <div class="print-page" v-loading="loading" :style="templateStyle">
-    <div class="print-title">{{ title }}</div>
+    <div class="print-title">{{ printData.title }}</div>
     <table class="print-table">
+      <tbody>
       <tr>
-        <td colspan="6">{{ warehouseLabel }}：{{ warehouseName }}</td>
+        <td colspan="6">{{ printData.warehouseLabel }}：{{ printData.warehouseName }}</td>
         <td colspan="3">单据编号</td>
-        <td colspan="2">{{ detail.orderNo || '-' }}</td>
+        <td colspan="2">{{ printData.orderNo }}</td>
       </tr>
       <tr>
-        <td colspan="6">{{ partyLabel }}：{{ partyName || '-' }}</td>
+        <td colspan="6">{{ printData.partyLabel }}：{{ printData.partyName }}</td>
         <td colspan="3">录单日期</td>
-        <td colspan="2">{{ detail.createdTime || '-' }}</td>
+        <td colspan="2">{{ printData.createdTime }}</td>
       </tr>
-      <tr v-if="showSourceMeta">
-        <td colspan="6">来源类型：{{ getSourceTypeText(detail.sourceType) }}</td>
+      <tr v-if="printData.showSourceMeta">
+        <td colspan="6">来源类型：{{ printData.sourceTypeText }}</td>
         <td colspan="3">AI记录ID</td>
-        <td colspan="2">{{ detail.sourceType === 'AI' ? (detail.aiRecordId || '-') : '-' }}</td>
+        <td colspan="2">{{ printData.aiRecordId }}</td>
       </tr>
-      <tr v-if="showSourceMeta && detail.sourceType === 'AI'">
-        <td colspan="6">AI任务号：{{ detail.aiTaskNo || '-' }}</td>
+      <tr v-if="printData.showSourceMeta && printData.aiRecordId !== '-'">
+        <td colspan="6">AI任务号：{{ printData.aiTaskNo }}</td>
         <td colspan="3">源文件名</td>
-        <td colspan="2">{{ detail.aiSourceFileName || '-' }}</td>
+        <td colspan="2">{{ printData.aiSourceFileName }}</td>
       </tr>
       <tr>
-        <td colspan="11">备注摘要：{{ detail.remark || '-' }}</td>
+        <td colspan="11">备注摘要：{{ printData.remark }}</td>
       </tr>
       <tr>
         <th>序号</th>
@@ -36,7 +37,7 @@
         <th colspan="2">备注</th>
       </tr>
       <tr
-        v-for="(item, index) in printItems"
+        v-for="(item, index) in printData.items"
         :key="`${rowKey}-${index}`"
         :class="['detail-row', { 'empty-row': item.isEmpty, nowrap: detailRowNoWrap }]"
       >
@@ -51,11 +52,11 @@
       </tr>
       <tr>
         <td colspan="6">合计</td>
-        <td colspan="2">{{ detail.totalAmount ?? '-' }}</td>
+        <td colspan="2">{{ printData.totalAmount }}</td>
         <td colspan="3"></td>
       </tr>
       <tr>
-        <td colspan="11">金额合计（大写）：{{ toChineseAmount(detail.totalAmount) }}</td>
+        <td colspan="11">金额合计（大写）：{{ printData.totalAmountChinese }}</td>
       </tr>
       <tr>
         <td colspan="6">公司名称：仓库管理系统</td>
@@ -67,6 +68,7 @@
         <td colspan="3">联系人</td>
         <td colspan="2"></td>
       </tr>
+      </tbody>
     </table>
 
     <div class="print-signature">
@@ -81,48 +83,20 @@
 
 <script setup>
 import { computed } from 'vue'
-import { buildPrintItems, displayCell, getSourceTypeText, toChineseAmount } from '../../utils/printAdapter'
+import { displayCell } from '../../utils/printAdapter'
 
 const props = defineProps({
   loading: {
     type: Boolean,
     default: false
   },
-  title: {
-    type: String,
-    required: true
-  },
-  warehouseLabel: {
-    type: String,
-    required: true
-  },
-  warehouseName: {
-    type: String,
-    default: '总仓库'
-  },
-  partyLabel: {
-    type: String,
-    required: true
-  },
-  partyName: {
-    type: String,
-    default: ''
-  },
-  detail: {
+  printData: {
     type: Object,
     required: true
   },
   rowKey: {
     type: String,
     default: 'print'
-  },
-  showSourceMeta: {
-    type: Boolean,
-    default: false
-  },
-  minRows: {
-    type: Number,
-    default: 12
   },
   detailRowHeight: {
     type: Number,
@@ -134,7 +108,6 @@ const props = defineProps({
   }
 })
 
-const printItems = computed(() => buildPrintItems(props.detail.itemList, props.minRows))
 const templateStyle = computed(() => ({
   '--detail-row-height': `${props.detailRowHeight}px`
 }))

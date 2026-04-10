@@ -1,3 +1,5 @@
+import { ORDER_TYPE } from '../utils/orderHelper'
+
 export function useOrderValidation(emitMessage) {
     const notify = (message) => {
         if (typeof emitMessage === 'function') {
@@ -64,9 +66,33 @@ export function useOrderValidation(emitMessage) {
         return true
     }
 
+    const validateOrderForm = (orderType, form) => {
+        if (orderType === ORDER_TYPE.OUTBOUND) {
+            return validateOutboundForm(form)
+        }
+        return validateInboundForm(form)
+    }
+
+    const validateAiImportedItems = (items) => {
+        if (!Array.isArray(items)) {
+            notify('识别结果为空')
+            return false
+        }
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i]
+            if (!item?.productId && !item?.matchedProductId) {
+                notify(`第 ${i + 1} 行商品尚未匹配，请先处理后再提交`)
+                return false
+            }
+        }
+        return true
+    }
+
     return {
         validateInboundForm,
-        validateOutboundForm
+        validateOutboundForm,
+        validateOrderForm,
+        validateAiImportedItems
     }
 }
-

@@ -1,6 +1,7 @@
 package com.yocaihua.wms.controller;
 
 import com.yocaihua.wms.common.OperatorHolder;
+import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.service.AiRecognitionService;
 import com.yocaihua.wms.common.Result;
 import com.yocaihua.wms.dto.AiInboundConfirmDTO;
@@ -15,8 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
-
 @Tag(name = "AI 辅助识别", description = "上传单据图片 → AI OCR 识别 → 人工复核 → 确认生成正式入库/出库单")
 @SecurityRequirement(name = "token")
 @RestController
@@ -76,9 +75,10 @@ public class AiAssistController {
 
     @Operation(summary = "AI 入库识别历史记录列表", description = "返回所有入库识别任务，包括待确认、已确认、识别失败等状态")
     @GetMapping("/inbound/list")
-    public Result<List<AiRecognitionRecordVO>> listInboundRecords() {
-        List<AiRecognitionRecordVO> list = aiRecognitionService.listInboundRecords();
-        return Result.success(list);
+    public Result<PageResult<AiRecognitionRecordVO>> listInboundRecords(
+            @Parameter(description = "页码，默认 1") @RequestParam(required = false) Integer pageNum,
+            @Parameter(description = "每页条数，默认 10") @RequestParam(required = false) Integer pageSize) {
+        return Result.success(aiRecognitionService.listInboundRecords(pageNum, pageSize));
     }
 
     @Operation(summary = "AI 入库识别记录详情")
@@ -91,9 +91,10 @@ public class AiAssistController {
 
     @Operation(summary = "AI 出库识别历史记录列表", description = "返回所有出库识别任务，包括待确认、已确认、识别失败等状态")
     @GetMapping("/outbound/list")
-    public Result<List<AiRecognitionRecordVO>> listOutboundRecords() {
-        List<AiRecognitionRecordVO> list = aiRecognitionService.listOutboundRecords();
-        return Result.success(list);
+    public Result<PageResult<AiRecognitionRecordVO>> listOutboundRecords(
+            @Parameter(description = "页码，默认 1") @RequestParam(required = false) Integer pageNum,
+            @Parameter(description = "每页条数，默认 10") @RequestParam(required = false) Integer pageSize) {
+        return Result.success(aiRecognitionService.listOutboundRecords(pageNum, pageSize));
     }
 
     @Operation(summary = "AI 出库识别记录详情")
