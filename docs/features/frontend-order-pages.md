@@ -1,108 +1,225 @@
-# 前端单据页面架构规格
+# 单据页面前端架构规格
 
-> 本文档描述入库单、出库单创建页与打印视图的**前端架构设计**，包括：重构前历史现状、已完成重构内容、后续改进方向、关键代码设计。  
-> 后端业务规则（状态机、库存联动、权限）见 [inbound-order.md](./inbound-order.md) / [outbound-order.md](./outbound-order.md)。  
-> **当前状态（2026-04）**：composables 层、通用组件层、打印架构（阶段1-4）已完成重构，CreateView 已从千行级降至 ~160 行。
-
----
-
-## 第一步：重构前历史现状（存档）
-
-> 本节记录重构前的原始问题，作为历史对照。重构后的实际状态见下方"当前实现状态"。
-
-### 1.1 重构前文件规模
-
-| 文件 | 重构前行数 | 重构前职责（过载） |
-|------|---------|------|
-| `views/inbound/InboundCreateView.vue` | 1564 | 手工入库 + AI 识别对话框 + 快速新建供应商弹窗 + 快速新建商品弹窗 + 草稿加载 + 校验 + 提交 |
-| `views/outbound/OutboundCreateView.vue` | 1231 | 与入库页结构几乎相同，差异仅为交易对手字段类型 |
-| `views/inbound/InboundPrintView.vue` | 355 | 独立路由打印页，含 `toChineseAmount()`（~90行）+ `buildPrintItems()` 重复代码 |
-| `views/outbound/OutboundPrintView.vue` | 315 | 与入库打印页逐字复制，差异仅为标题和字段名 |
-
-### 1.2 重构前主要耦合问题
-
-| 问题 | 严重度 |
-|------|--------|
-| CreateView 巨型化（1564/1231 行），无法独立测试 | 高 |
-| 入库/出库 80%+ 代码重复，同一 Bug 需改两处 | 高 |
-| AI 识别对话框嵌入 CreateView，共享组件状态 | 高 |
-| 无 composables 层，所有逻辑内联在 .vue 文件 | 高 |
-| 无页面状态模型（create/edit/view 未区分） | 中 |
-| 无汇总区：合计数量/金额未展示 | 中 |
-| 打印工具函数重复，无数据适配层 | 中 |
-| Pinia 已安装但未用于共享状态 | 低 |
+> **定位**：本系统从轻量 WMS 出发，逐步演进为**轻 ERP + WMS 一体化**。单据页（入库单、出库单）是核心录单入口，其前端架构决定了整个单据体系能否支撑后续扩展（销售单、采购单、调拨单等）。
+>
+> 本文档描述：当前实现架构、核心设计规范、组件与 composable 接口、打印架构、待实现事项，以及 UI 设计参考。
+>
+> 后端业务规则见 [inbound-order.md](./inbound-order.md) / [outbound-order.md](./outbound-order.md)。
 
 ---
 
-## 当前实现状态（2026-04）
+## 1. 当前实现状态（2026-04）
 
-> 阶段1–4 已完成重构，以下为实际代码现状。
+### 1.1 目录结构
 
-### 文件规模对比
+```
+frontend/src/
+├── views/
+│   ├── inbound/
+│   │   ├── InboundCreateView.vue       # 路由入口包装（7行，仅转发给 InboundOrderCreate）
+│   │   ├── InboundOrderCreate.vue      # 入库创建页实体（127行）
+│   │   ├── InboundListView.vue         # 入库单列表
+│   │   ├── InboundDetailView.vue       # 入库单详情（只读）
+│   │   └── InboundPrintView.vue        # 打印视图（73行）
+│   └── outbound/
+│       ├── OutboundCreateView.vue      # 路由入口包装（7行）
+│       ├── OutboundOrderCreate.vue     # 出库创建页实体（129行）
+│       ├── OutboundListView.vue        # 出库单列表
+│       ├── OutboundDetailView.vue      # 出库单详情（只读）
+│       └── OutboundPrintView.vue       # 打印视图（63行）
+├── composables/
+│   ├── useOrderCalc.js                 # 金额计算（纯函数，42行）
+│   ├── useOrderForm.js                 # 表单状态与页面模式（90行）
+│   ├── useOrderItems.js                # 明细行增删插改（97行）
+│   ├── useOrderValidation.js           # 三层校验（99行）
+│   ├── useProductSearch.js             # 商品远程搜索（126行）
+│   ├── useAiRecognition.js             # AI 识别草稿管理（166行）
+│   ├── useQuickCreate.js               # 快速新建弹窗（44行）
+│   ├── useOrderItemTableFocus.js       # 明细表焦点 / 键盘流 / 行高亮（143行）
+│   ├── useOrderWorkbenchPage.js        # 工作台共享核心（420行）
+│   ├── useInboundCreatePage.js         # 入库页薄适配层（84行）
+│   └── useOutboundCreatePage.js        # 出库页薄适配层（159行）
+├── components/
+│   ├── order/
+│   │   ├── OrderItemTable.vue          # 统一编辑/只读明细表格（428行）
+│   │   ├── OrderProductSelectCell.vue  # 商品选择列子组件（61行）
+│   │   ├── OrderDetailItemTable.vue    # 遗留只读详情表（35行，待清理）
+│   │   ├── OrderSummary.vue            # 汇总区组件（46行）
+│   │   ├── AiRecognitionDialog.vue     # 入库 AI 识别对话框（868行）
+│   │   ├── AiOutboundRecognitionDialog.vue  # 出库 AI 识别对话框（750行）
+│   │   └── QuickCreateDialog.vue       # 快速新建通用弹窗（50行）
+│   ├── order-workbench/
+│   │   ├── OrderHeaderForm.vue         # 工作台单据头（195行）
+│   │   ├── OrderDetailTable.vue        # 工作台明细包装层（133行）
+│   │   ├── OrderSummaryBar.vue         # 工作台底部汇总条（158行）
+│   │   └── ProductSelectDialog.vue     # 商品弹窗组件（115行）
+│   └── print/
+│       └── PrintTemplate.vue           # 通用打印模板
+└── utils/
+    ├── orderHelper.js                  # 常量 + 工具函数（68行）
+    ├── printUtils.js                   # 大写金额 + 打印行补齐（105行）
+    ├── printAdapter.js                 # 打印数据适配（78行）
+    └── printService.js                 # 触发打印（10行）
+```
 
-| 文件 | 重构前 | 重构后（实际） | 变化 |
-|------|--------|-------------|------|
-| `InboundCreateView.vue` | 1564 行 | **158 行** | ↓ 90% |
-| `OutboundCreateView.vue` | 1231 行 | **160 行** | ↓ 87% |
-| `InboundPrintView.vue` | 355 行 | **73 行** | ↓ 79% |
-| `OutboundPrintView.vue` | 315 行 | **63 行** | ↓ 80% |
+### 1.2 层次架构
 
-### 已建立的 Composables 层（`frontend/src/composables/`）
+```
+┌──────────────────────────────────────────────────────┐
+│ View Layer                                           │
+│  InboundOrderCreate / OutboundOrderCreate            │
+│  InboundListView / OutboundListView                  │
+│  InboundDetailView / OutboundDetailView              │
+├──────────────────────────────────────────────────────┤
+│ Page Composable Layer（共享核心 + 薄适配层）            │
+│  useOrderWorkbenchPage                               │
+│  ├── 组合所有基础 composable                          │
+│  ├── 草稿保存 / 提交确认 / 离开保护                    │
+│  └── 商品搜索 / 汇总计算 / 打印预览                    │
+│  useInboundCreatePage / useOutboundCreatePage        │
+│  ├── 注入 API / 路由 / 文案                           │
+│  └── 补充供应商 / 客户 / 库存差异逻辑                  │
+├──────────────────────────────────────────────────────┤
+│ Base Composable Layer（业务逻辑，入库/出库共用）        │
+│  useOrderForm   useOrderItems   useOrderCalc         │
+│  useOrderValidation  useProductSearch                │
+│  useAiRecognition    useQuickCreate                  │
+├──────────────────────────────────────────────────────┤
+│ Component Layer（UI 组件，无业务逻辑）                 │
+│  OrderHeaderForm  OrderDetailTable  OrderSummaryBar  │
+│  OrderItemTable   ProductSelectDialog                │
+│  QuickCreateDialog                                   │
+│  AiRecognitionDialog  AiOutboundRecognitionDialog    │
+│  PrintTemplate                                       │
+├──────────────────────────────────────────────────────┤
+│ Utils Layer（纯函数）                                 │
+│  orderHelper  printUtils  printAdapter  printService │
+└──────────────────────────────────────────────────────┘
+```
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `useOrderCalc.js` | 41 | 行金额、合计数量、合计金额（纯函数） |
-| `useOrderForm.js` | 82 | 表单状态、页面模式、API 映射 |
-| `useOrderItems.js` | 96 | 明细行增/删/插入、商品联动 |
-| `useOrderValidation.js` | 98 | 三层校验（字段→行→单据） |
-| `useProductSearch.js` | 125 | 商品远程搜索 + 选项缓存 |
-| `useAiRecognition.js` | 165 | AI 上传、识别、草稿状态、确认 |
-| `useQuickCreate.js` | 43 | 快速新建供应商/客户/商品弹窗逻辑 |
-| `useInboundCreatePage.js` | 329 | 入库创建页聚合 composable（组合以上各层） |
-| `useOutboundCreatePage.js` | 349 | 出库创建页聚合 composable |
+### 1.3 数据流
 
-### 已建立的组件层
+```
+路由参数（?draftId=xxx）
+    ↓
+useInboundCreatePage / useOutboundCreatePage
+    └─ useOrderWorkbenchPage
+         ├─ useOrderForm       → form状态、pageMode、草稿ID、页面标题
+         ├─ useOrderItems      → items 数组（增/删/插/改）
+         ├─ useOrderCalc       → 行金额、总数量、总金额（computed）
+         ├─ useOrderValidation → 三层校验
+         ├─ useProductSearch   → productOptions、搜索防抖
+         └─ API（保存草稿 / 提交确认 / 加载详情）
+              ↓
+    InboundOrderCreate / OutboundOrderCreate
+         ├─ <OrderHeaderForm>      单据头
+         ├─ <OrderDetailTable>     工作台明细包装层
+         │     ├─ <OrderItemTable> 明细表格（editable）
+         │     └─ <ProductSelectDialog> 商品弹窗
+         ├─ <OrderSummaryBar>      底部汇总 + 主操作区
+         └─ <AiRecognitionDialog>  AI 识别入口
 
-**`frontend/src/components/order/`**：
-- `OrderItemTable.vue` — 可编辑明细表格（props/emit 解耦）
-- `OrderSummary.vue` — 汇总区域组件
-- `AiRecognitionDialog.vue` — 入库 AI 识别对话框
-- `AiOutboundRecognitionDialog.vue` — 出库 AI 识别对话框（独立组件）
-- `QuickCreateDialog.vue` — 通用快速新建弹窗
-- `OrderDetailItemTable.vue` — 详情页只读表格
+AI 流程（独立）：
+    AiRecognitionDialog / AiOutboundRecognitionDialog
+         ├─ useAiRecognition    → AI草稿生命周期
+         ├─ useProductSearch    → 商品匹配
+         └─ useQuickCreate      → 快速新建产品/供应商/客户
+         ↓ emit('confirmed', { form, items })
+    页面接收，写入 form + items
 
-**`frontend/src/components/print/`**：
-- `PrintTemplate.vue` — 通用打印模板（纯渲染，不调 API）
+打印流程：
+    openPrintWindow(id, type) → window.open(/inbound/print/:id)
+    PrintView → printAdapter.build*PrintData() → PrintTemplate
+             → printService.triggerBrowserPrint()
+```
 
-### 已建立的工具层（`frontend/src/utils/`）
+补充：
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `orderHelper.js` | 61 | createEmptyOrderItem / PAGE_MODE / ORDER_STATUS / today() 等常量与工具函数 |
-| `printUtils.js` | 104 | toChineseAmount / padPrintItems（已从两个 PrintView 合并为唯一来源） |
-| `printAdapter.js` | 77 | buildInboundPrintData / buildOutboundPrintData → PrintData |
-| `printService.js` | 9 | triggerBrowserPrint / openPrintPreview（PDF 导出预留接口） |
-
-### Pinia Store（`frontend/src/stores/`）
-- `auth.js` — 已接入，统一管理 token / username / nickname / role
-
-### 待完善（阶段5）
-
-| 项目 | 说明 |
-|------|------|
-| 预置空行交互 | 明细表格初始化预置 8 行空行，录入体验向 ERP 靠拢 |
-| 合计行嵌入表格 | 合计行作为表格最后一行，与数据列对齐 |
-| 操作区完整按钮 | 补齐"保存并新建"、"清空"、"预览"及快捷键标注 |
-| 出库库存余量展示 | 明细行显示当前库存数，防止超量录入 |
-| `ProductFormView.vue` / `CustomerFormView.vue` | 当前为空文件，待确认用途或删除 |
+- `InboundDetailView` / `OutboundDetailView` 已直接复用 `OrderItemTable`
+- 详情页通过 `editable=false` 和显示开关关闭商品选择列、操作列、表格合计行，继续保留独立 `OrderSummary`
 
 ---
 
-## 第二步：重构方案设计
+## 2. 核心设计规范
 
-### 2.1 页面结构：ERP 单据工作台
+### 2.1 页面模式（PAGE_MODE）
 
-页面统一拆成四个区域，布局参考传统进销存软件"高效录单"风格（见 §UI参考分析）：
+页面模式控制 UI 可编辑性，与后端 `orderStatus` 解耦：
+
+```js
+// utils/orderHelper.js
+export const PAGE_MODE = {
+  CREATE:   'create',    // 新建，全部可编辑
+  EDIT:     'edit',      // 编辑草稿，全部可编辑
+  READONLY: 'readonly'   // 已确认 / 已作废，完全只读
+}
+
+// orderStatus → pageMode 映射
+// DRAFT(1)     → EDIT
+// COMPLETED(2) → READONLY
+// VOID(3)      → READONLY
+```
+
+**使用原则**：所有可编辑控件的 `disabled` / `:editable` 条件统一读 `pageMode`，不直接判断 `orderStatus`。
+
+### 2.2 单据状态（ORDER_STATUS）
+
+```js
+export const ORDER_STATUS = {
+  DRAFT:     1,  // 草稿（可编辑、可作废）
+  COMPLETED: 2,  // 已确认（入库/出库完成，只读）
+  VOID:      3   // 已作废（只读）
+}
+```
+
+### 2.3 主数据模型
+
+```js
+// 表单头
+form = {
+  orderNo: '',          // 系统生成，草稿阶段显示"待生成"
+  orderDate: today(),   // 默认今日
+  supplierName: '',     // 入库专有
+  customerId: null,     // 出库专有
+  remark: '',
+  sourceType: 'MANUAL'  // MANUAL | AI，自动带入
+}
+
+// 明细行（createEmptyOrderItem() 产出）
+item = {
+  productId: null,
+  productCode: '',
+  productName: '',
+  specification: '',
+  unit: '',
+  quantity: 1,
+  unitPrice: 0,
+  remark: '',
+  availableStock: null  // 出库专有，只读展示
+}
+```
+
+### 2.4 明细表格：Excel 式行内编辑
+
+**核心原则**：每个单元格直接可编辑，无需弹窗，无"进入编辑模式"的额外点击。控件常驻于格子内，点击即录入，Tab 在格子间跳转。
+
+| 列 | 编辑控件 | 备注 |
+|----|---------|------|
+| 商品选择 | `el-input`（只读）+ "选择" 按钮 | 点击按钮或 Enter 键打开 `ProductSelectDialog`；选中后回填编码/名称/规格/单位 |
+| 商品编码 | `el-input` | 自由文本，可在弹窗选中后手动覆盖 |
+| 商品名称 | `el-input` | 自由文本，可在弹窗选中后手动覆盖 |
+| 规格 | `el-input` | 自由文本，可覆盖 |
+| 单位 | `el-input` | 自由文本，可覆盖 |
+| 数量 | `el-input-number` | 最小值 1，变更后自动重算金额 |
+| 单价 | `el-input-number` | 最小值 0，精度两位小数，变更后自动重算金额 |
+| 金额 | **只读文本** | `quantity × unitPrice`，自动计算 |
+| 库存余量 | **只读文本** | 出库专有，显示当前可用库存 |
+| 备注 | `el-input` | 自由文本 |
+| 操作 | 文字按钮 | 插入行 / 删除行 |
+
+`READONLY` 模式下：所有列渲染为纯文本 `<span>`，不渲染控件。
+
+### 2.5 页面布局规范
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -110,623 +227,477 @@
 │  左：[供应商/客户]  [备注]        右：单据编号 XSD2024001001  │
 │                                       单据日期 2024-01-01    │
 ├─────────────────────────────────────────────────────────────┤
-│  B. 明细表格区域                                              │
+│  B. 明细表格（Excel 式行内编辑，预置 8 行空行）                │
 │  ┌──┬──────────────┬──┬────┬──────┬──────┬──────┬───┬──┐   │
 │  │行号│商品编码/名称  │规格│单位│ 数量 │ 单价 │ 金额 │备注│操作│   │
 │  ├──┼──────────────┼──┼────┼──────┼──────┼──────┼───┼──┤   │
-│  │ 1 │（预置空行）   │   │    │      │      │      │   │   │   │
-│  │ 2 │              │   │    │      │      │      │   │   │   │
-│  │...│  默认 8 行    │   │    │      │      │      │   │   │   │
-│  │ 8 │              │   │    │      │      │      │   │   │   │
+│  │ 1 │[el-select]   │[  ]│[  ]│[  0] │[  0] │ 0.00 │[  ]│+✕│   │
+│  │ 2 │              │    │    │      │      │      │   │  │   │
+│  │...│  预置 8 行    │    │    │      │      │      │   │  │   │
 │  ├──┴──────────────┴──┴────┼──────┴──────┼──────┤───┴──┤   │
-│  │    合 计                 │     0       │¥0.00 │      │   │
+│  │  合 计                   │     0       │¥0.00 │      │   │
 │  └─────────────────────────┴─────────────┴──────┴──────┘   │
 ├─────────────────────────────────────────────────────────────┤
-│  C. 汇总区域（表格底部合计行 + 独立汇总条）                    │
-│    合计数量：0    合计金额：¥0.00                              │
+│  C. 汇总区                                                    │
+│    行数：0    合计数量：0    合计金额：¥0.00                   │
 ├─────────────────────────────────────────────────────────────┤
 │  D. 操作区（左辅右主）                                        │
-│  [查看历史] [智能识别导入]   [保存草稿(S)] [保存并新建] [清空] │
-│                              [打印(P)]   [预览]              │
+│  [智能识别导入]   [保存草稿(S)] [保存并新建] [清空] [打印(P)] │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**单据头字段规划（与后端对齐）**：
+**操作区按钮规则**：
 
-| 字段 | 入库 | 出库 | 只读 | 位置 | 说明 |
-|------|------|------|:----:|------|------|
-| orderNo | ✓ | ✓ | ✓ | 右上角大字 | 系统生成，草稿阶段显示"待生成" |
-| orderDate | ✓ | ✓ | - | 右上角 | 默认今日，可编辑 |
-| supplierName | ✓ | - | - | 左侧主区 | 文本输入，支持快速新建 |
-| customerId | - | ✓ | - | 左侧主区 | 下拉选择，支持快速新建 |
-| remark | ✓ | ✓ | - | 左侧次区 | 备注/说明 |
-| sourceType | ✓ | ✓ | ✓ | 自动带入 | MANUAL/AI，不需要用户手填 |
+| 按钮 | CREATE | EDIT（草稿） | READONLY |
+|------|:------:|:-----------:|:--------:|
+| 智能识别导入 | ✓ | ✓ | ✗ |
+| 保存草稿 (S) | ✓ | ✓ | ✗ |
+| 保存并新建 | ✓ | ✓ | ✗ |
+| 清空 | ✓ | ✓ | ✗ |
+| 打印 (P) | ✗ | ✓ | ✓ |
+| 提交确认（ADMIN） | ✓ | ✓ | ✗ |
 
-**操作区按钮规则**（左辅助 / 右主操作）：
+---
 
-| 分组 | 按钮 | create | edit(草稿) | readonly(已确认/作废) |
-|------|------|:------:|:----------:|:--------------------:|
-| 左侧辅助 | 查看历史单据 | ✓ | ✓ | ✓ |
-| 左侧辅助 | 智能识别导入 | ✓ | ✓ | ✗ |
-| 右侧主操作 | 保存草稿 (S) | ✓ | ✓ | ✗ |
-| 右侧主操作 | 保存并新建 | ✓ | ✓ | ✗ |
-| 右侧主操作 | 打印 (P) | ✗ | ✓ | ✓ |
-| 右侧主操作 | 预览 | ✗ | ✓ | ✓ |
-| 右侧主操作 | 清空 (C) | ✓ | ✓ | ✗ |
+## 3. 关键 Composable 接口
 
-### 2.2 单据逻辑层拆分方案
-
-新建 `frontend/src/composables/` 目录，按职责拆分七个 composable：
-
-| Composable | 职责 | 入库/出库共用 |
-|-----------|------|:---:|
-| `useOrderForm.js` | 页面状态机、单据头表单、草稿加载/保存/提交、API 映射 | ✓ |
-| `useOrderItems.js` | 明细行增/删/插入、商品选择联动、行校验 | ✓ |
-| `useOrderCalc.js` | 行金额、合计数量、合计金额（纯函数） | ✓ |
-| `useOrderValidation.js` | 三层校验：字段→行→单据 | ✓ |
-| `useProductSearch.js` | 商品远程搜索 + 本地选项缓存 | ✓ |
-| `useAiRecognition.js` | AI 上传、识别、草稿状态、确认，与 CreateView 解耦 | ✓ |
-| `useQuickCreate.js` | 快速新建供应商/客户/商品弹窗逻辑 | ✓ |
-
-### 2.3 页面状态模型与单据状态模型
-
-两者必须分开维护，不能混用：
+### 3.1 `useOrderForm`
 
 ```js
-// 页面状态（决定 UI 可编辑性）
-PAGE_MODE = {
-  CREATE:   'create',   // 新建中，全部可编辑
-  EDIT:     'edit',     // 编辑草稿，全部可编辑
-  VIEW:     'view',     // 查看已保存单据，只读
-  CONFIRM:  'confirm',  // 等待管理员确认，只读
-  READONLY: 'readonly'  // 已确认/已作废，完全只读
-}
-
-// 单据状态（决定业务流转，与后端 orderStatus 对齐）
-ORDER_STATUS = {
-  DRAFT:     1,  // 草稿
-  COMPLETED: 2,  // 已确认（入库/出库完成）
-  VOID:      3   // 已作废
-}
+const {
+  pageMode,          // Ref<'create'|'edit'|'readonly'>
+  currentDraftId,    // Ref<number|null>
+  submitting,        // Ref<boolean>
+  pageTitle,         // Ref<string>
+  resetForm,         // () => void
+  applyDraftDetail,  // (detail, mapHeader) => void
+  resolvePageModeByStatus, // (status) => void
+  markCreateMode,    // () => void
+} = useOrderForm()
 ```
 
-映射规则：`orderStatus=1` → `PAGE_MODE.EDIT`；`orderStatus=2|3` → `PAGE_MODE.READONLY`
-
-### 2.4 主从数据模型
+### 3.2 `useOrderItems`
 
 ```js
-// 统一数据模型（form/items/summary 三层）
-const state = {
-  form: {                    // 单据头
-    orderNo: '',
-    orderDate: today(),
-    supplierName: '',        // 入库
-    customerId: null,        // 出库
-    remark: '',
-    sourceType: 'MANUAL'
-  },
-  items: [OrderItem],        // 明细行数组
-  summary: {                 // 汇总（computed）
-    totalQuantity: 0,
-    totalAmount: '0.00'
-  }
-}
+const {
+  addItem,           // () => void
+  removeItem,        // (index) => void
+  insertItem,        // (afterIndex) => void
+  updateRowField,    // (index, field, value) => void
+  selectProduct,     // (index, productId, options, onProductChange?) => void
+  resetItems,        // () => void
+} = useOrderItems(items, { minItems: 1 })
 ```
 
-### 2.5 行级交互事件抽象
+### 3.3 `useOrderCalc`
 
-| 事件 | 触发时机 | 处理逻辑 |
-|------|---------|---------|
-| `onHeaderFieldChange(field, value)` | 单据头字段变更 | 更新 form，标记脏状态 |
-| `onRowFieldChange(index, field, value)` | 明细行字段变更 | 更新行，触发金额重算，刷新汇总 |
-| `onProductSelected(index, productId)` | 商品选中 | 回填 productCode/productName/specification/unit/unitPrice，重算金额 |
-| `onRowAdd()` | 点击新增行 | push 空行 |
-| `onRowInsert(afterIndex)` | 在某行后插入 | splice 插入空行 |
-| `onRowDelete(index)` | 删除某行 | splice 删除，至少保留 1 行 |
-| `onSaveDraft()` | 保存草稿 | 校验后调 saveInboundOrder 或 updateInboundOrderDraft |
-| `onSaveAndNew()` | 保存并新建 | 保存成功后 resetForm() |
-| `onSubmitOrder()` | 提交确认 | 校验 + confirm API |
-| `onLoadOrderDetail(id)` | 加载已有单据 | 拉取详情，判断 orderStatus 设置 pageMode |
-| `onImportFromAI(aiDraft)` | AI 识别完成后导入 | 将 aiDraft 映射到 form + items |
-
-### 2.6 校验逻辑三层设计
-
-```
-字段级校验（validateField）
-  └─ 商品不能为空
-  └─ 数量必须 > 0
-  └─ 单价不能 < 0
-
-行级校验（validateRow）
-  └─ 同一商品不允许重复录入（警告，不阻断）
-  └─ 出库：quantity <= 库存余量
-
-单据级校验（validateOrder）
-  └─ 至少有一条有效明细
-  └─ 单据头必填字段不为空
-  └─ AI 导入：所有行 matchedProductId 必须已设置（未匹配项不允许提交）
+```js
+const {
+  calcAmount,        // (row) => string  行金额
+  calcTotals,        // (items) => { totalQuantity, totalAmount }
+  useComputedTotals, // (items) => { totalQuantity: ComputedRef, totalAmount: ComputedRef }
+} = useOrderCalc()
 ```
 
-### 2.7 明细表交互抽象方案（`OrderItemTable.vue`）
+### 3.4 `useOrderValidation`
 
-**Props**：
-- `items` — 明细行数组
-- `editable` — 是否可编辑
-- `orderType` — 入库/出库（控制是否显示库存余量列）
-- `productOptions` — 商品选项
-- `productLoading` — 搜索加载状态
+```js
+const {
+  validateInboundForm,     // (form, items, emitMsg) => boolean
+  validateOutboundForm,    // (form, items, emitMsg) => boolean
+  validateAiImportedItems, // (items, emitMsg) => boolean
+} = useOrderValidation()
+```
 
-**Events**：
-- `@row-add`
-- `@row-insert(afterIndex)`
-- `@row-delete(index)`
-- `@row-field-change(index, field, value)`
-- `@product-selected(index, productId)`
-- `@product-search(keyword)`
-
-### 2.8 打印架构拆分方案（四层）
+**三层校验逻辑**：
 
 ```
-业务数据（API 返回 detail 对象）
+字段级：supplierName / customerId 不能为空
+行级：  数量 > 0，单价 ≥ 0
+单据级：至少一条有效明细
+AI专用：所有行 matchedProductId 必须已设置（未匹配项阻止提交）
+```
+
+### 3.5 `useProductSearch`
+
+```js
+const {
+  productOptions,        // Ref<Array>
+  productLoading,        // Ref<boolean>
+  loadProducts,          // (params?) => Promise
+  handleProductSearch,   // (keyword) => void  防抖搜索
+  upsertProductOption,   // (product) => void  维持选项去重
+  handleProductChange,   // (index, productId) => void  回填行字段
+} = useProductSearch()
+```
+
+### 3.6 `useAiRecognition`
+
+```js
+const {
+  normalizeAiDraft,       // (rawItem, normalize?) => AiDraftItem
+  markAiDraftDirty,       // (item) => void
+  getAiWarningText,       // (item) => string
+  addAiItem,              // () => void
+  removeAiItem,           // (index) => void
+  hasUnmatchedAiItems,    // (items) => boolean
+  hasInvalidAiItems,      // (items) => boolean
+  buildAiConfirmPayload,  // (form, items, orderType) => Payload
+} = useAiRecognition()
+```
+
+AI 识别解耦模式：
+
+```
+AiRecognitionDialog.vue
+    emit('confirmed', { form, items })
+        ↓
+页面接收 → 写入 form + items
+用户可继续编辑后再保存/提交
+```
+
+### 3.7 `useOrderWorkbenchPage`
+
+共享页面级核心 composable，负责入库/出库共同流程：
+
+```js
+const {
+  aiDialogRef,
+  form,
+  editable,
+  pageTitle,
+  submitting,
+  currentDraftId,
+  productOptions,
+  productLoading,
+  summary,
+  calcAmount,
+  addItem,
+  insertItem,
+  removeItem,
+  updateRowField,
+  handleProductSearch,
+  onProductChange,
+  openAiDialog,
+  handleClear,
+  handleSubmit,
+  handleSaveAndNew,
+  handleSubmitConfirm,
+  openPrintPreview,
+  canSaveDraft,
+  canSaveAndNew,
+  canClear,
+  canAiImport,
+  canSubmitConfirm,
+  canPrintPreview
+} = useOrderWorkbenchPage()
+```
+
+**配置注入职责**：
+
+- `defaultValues`：表单头默认值
+- `fetchDetail/saveDraftApi/updateDraftApi/confirmApi`：接口差异
+- `buildPayload/buildSnapshot/mapDetailHeader`：数据映射差异
+- `listRoute/detailRouteBuilder/printRouteBuilder`：路由差异
+- `loadInitialData/afterDraftLoaded/afterProductsLoaded/onProductSelected`：客户列表、库存刷新等扩展钩子
+- `messages/notify`：入库与出库的提示文案和消息级别
+
+### 3.8 `useInboundCreatePage` / `useOutboundCreatePage`
+
+现在这两个文件只保留业务差异，作为薄适配层直接暴露给 View 使用：
+
+| 类别 | 暴露内容 |
+|------|---------|
+| 状态 | `form`, `summary`, `pageTitle`, `submitting`, `editable` |
+| 产品 | `productOptions`, `productLoading`, `handleProductSearch`, `onProductChange` |
+| 客户（出库） | `customerOptions` |
+| 计算 | `calcAmount` |
+| 行操作 | `addItem`, `removeItem`, `insertItem`, `updateRowField` |
+| 操作 | `handleSubmit`, `handleSubmitConfirm`, `handleClear`, `handleSaveAndNew` |
+| AI | `openAiDialog`（通过组件 ref 触发） |
+| 打印 | `openPrintPreview()` |
+| 库存（出库） | 通过适配层内部 `loadAvailableStock` / `refreshItemStocks` 钩子接入，不再暴露给 View |
+
+### 3.9 已完成：第二批工作台拆分（v1.7）
+
+分三个连续小步完成：
+
+#### `v1.7-a`：公共页面级 composable（已完成）
+
+- 已新增 `useOrderWorkbenchPage.js`
+- 已抽取公共骨架：
+  - 页面模式
+  - 草稿保存
+  - 提交确认主链路
+  - 清空 / 保存并新建
+  - 离开保护
+  - 合计计算
+  - 商品搜索基础能力
+- 入库/出库差异已通过配置项注入：
+  - 供应商 / 客户字段
+  - 出库库存加载
+  - 保存 / 确认 API
+  - 路由与提示文案
+- 已采用“共享核心 + 薄适配层”：
+  - `useInboundCreatePage.js` / `useOutboundCreatePage.js` 内部调用共享核心
+  - 页面容器继续消费原适配层结果，不需要重写模板结构
+
+#### `v1.7-b`：商品弹窗选品（已完成）
+
+- 已将 `OrderItemTable.vue` 中的商品列，从当前内联 `el-select` 切换为 `ProductSelectDialog.vue`
+- 弹窗状态统一由 `OrderDetailTable.vue` 托管：
+  - `dialogVisible`
+  - `dialogKeyword`
+  - `activeRowIndex`
+  - `selectedProductId`
+- 已实现：
+  - 点击商品格或“选择”按钮打开弹窗
+  - 按商品编码 / 名称搜索
+  - 单击选中、双击确认、底部按钮确认
+  - 回填商品编码 / 名称 / 规格 / 单位，并继续复用既有默认单价 / 库存逻辑
+- 页面级 composable 保持不变，继续只暴露：
+  - `productOptions`
+  - `productLoading`
+  - `handleProductSearch`
+  - `onProductChange`
+- 快速新建商品在这一批仅预留事件接口 `quick-create`，未接入完整创建链路，也不扩展到客户/供应商
+
+#### `v1.7-c`：键盘录入流（第一版已完成）
+
+- 已实现明细表主录入列的顺序 `Tab` 跳转
+- 已补齐 `Shift+Tab` 反向链：
+  - 当前格回退到上一格
+  - 当前行第一格回退到上一行最后一格
+  - 第一行第一格保持当前焦点，不再继续向外跳转
+- 当前顺序：
+  - 商品选择
+  - 商品编码
+  - 商品名称
+  - 规格
+  - 单位
+  - 数量
+  - 单价
+  - 备注
+- 已实现末格跳转规则：
+  - 当前行 `备注` 按 `Tab`
+  - 若存在下一行，聚焦下一行“商品选择”
+  - 若当前已是最后一行，自动新增一行并聚焦新行“商品选择”
+- 已与“保存并新建”动作衔接：
+  - 保存成功后重置表单
+  - 自动聚焦第一行“商品选择”
+  - 后续继续按 `Tab` 进入既有主录入链
+- 已补充当前录入行高亮：
+  - 编辑态下，当前聚焦或点击的录入行高亮显示
+  - `Tab` 跳到下一格 / 下一行时，高亮同步跟随
+- 第一版明确未纳入焦点链：
+  - 商品弹窗内部焦点流
+  - 清空 / 插入 / 删除按钮
+  - 合计行
+  - 底部操作区按钮
+- 实现位置：
+  - `useOrderItemTableFocus.js` 负责主录入列焦点注册、`Tab/Shift+Tab` 跳转、行高亮与首格聚焦
+  - `OrderItemTable.vue` 只负责表格渲染与事件桥接
+  - 商品选择列已拆为 `OrderProductSelectCell.vue`，仅负责该列渲染与“选择/清空”按钮
+  - 页面层与 composable 层不感知 DOM 焦点细节
+
+---
+
+## 4. 打印架构
+
+四层分离，职责明确：
+
+```
+业务详情数据（API 返回 detail 对象）
     ↓
-打印数据适配器（utils/printAdapter.js）
+utils/printAdapter.js
     buildInboundPrintData(detail) → PrintData
     buildOutboundPrintData(detail) → PrintData
     ↓
-打印模板组件（components/print/PrintTemplate.vue）
+components/print/PrintTemplate.vue
     纯渲染，不调 API，不含业务逻辑
     ↓
-打印服务层（utils/printService.js）
-    openPrintPreview(id, type)  → 新窗口预览
-    triggerPrint(id, type)      → 直接打印
-    exportPdf(id, type)         → 预留 PDF 导出接口
+utils/printService.js
+    triggerBrowserPrint()   → window.print()（延迟200ms等待DOM渲染）
+
+utils/printUtils.js（工具函数）
+    toChineseAmount(n)      → 中文大写金额
+    padPrintItems(items, n) → 补齐打印行至最少行数
+    openPrintWindow(id)     → 新窗口打开打印页
 ```
 
-**PrintData 统一数据结构**：
+**PrintData 结构**：
+
 ```js
 {
-  title: string,                              // 单据标题
-  headerFields: [{ label, value, span }],     // 单据头信息行
-  items: [{                                   // 明细行（含空行）
+  title: string,
+  headerFields: [{ label, value, span }],
+  items: [{
     index, productName, specification,
-    unit, quantity, unitPrice, amount,
-    remark, isEmpty
+    unit, quantity, unitPrice, amount, remark, isEmpty
   }],
   totalAmount: string,
   totalAmountChinese: string
 }
 ```
 
-### 2.9 AI 识别确认单兼容方案
+---
 
-**核心原则**：AI 识别产生的是"待确认草稿"，不是直接单据。
+## 5. 组件接口规格
 
-**解耦方案**：
+### 5.1 `OrderItemTable.vue`
 
-```
-AiRecognitionDialog.vue（独立组件）
-    ↓ 用户确认草稿后
-    emit('confirmed', { form, items })
-    ↓
-InboundCreateView 接收
-    onImportFromAI(aiDraft) → 映射到 form + items
-    用户可继续编辑
-    ↓
-手动点击"保存草稿" / "提交确认"
-```
+现已同时用于：
 
-**AI 草稿 → 标准 items 映射规则**：
-- `aiItem.matchedProductId` → `item.productId`（已匹配时）
-- `aiItem.productName` → `item.productName`（未匹配时保留原始名称，标记警告）
-- `aiItem.quantity / unitPrice / amount` → 直接映射
-- 未匹配商品：`item.productId = null`，行高亮警告，阻止提交直到处理完
+- 创建页工作台明细表（编辑态）
+- 入库 / 出库详情页只读明细表（只读态）
 
-**AI 对话框中支持**：
-- 逐行修改识别结果
-- 行内搜索匹配商品（`handleAiMatchedProductChange`）
-- 快速新建商品（`openQuickCreateProduct`）
-- 快速新建供应商/客户（`openQuickCreateSupplier`）
+**Props**：
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `items` | Array | 明细行数组（响应式） |
+| `editable` | Boolean | `false` → 所有列渲染为纯文本 |
+| `orderType` | String | `'inbound'`\|`'outbound'`，控制是否显示库存余量列 |
+| `productOptions` | Array | 商品下拉选项 |
+| `productLoading` | Boolean | 搜索加载状态 |
+| `calcAmount` | Function | `(row) => string` 行金额计算 |
+| `showToolbar` | Boolean | 是否显示顶部标题工具条 |
+| `showAddButton` | Boolean | 是否显示“新增明细”按钮 |
+| `showIndexColumn` | Boolean | 是否显示行号列 |
+| `showProductSelectColumn` | Boolean | 是否显示商品选择列 |
+| `showActionColumn` | Boolean | 是否显示操作列 |
+| `showSummary` | Boolean | 是否显示表格底部合计行 |
+| `showStockColumn` | Boolean | 是否显示出库库存余量列 |
+| `stripe` | Boolean | 是否启用条纹行，只读详情页可开启 |
+
+**Events**：
+
+| Event | 参数 | 说明 |
+|-------|------|------|
+| `row-add` | — | 添加行 |
+| `row-insert` | `afterIndex` | 在指定行后插入 |
+| `row-delete` | `index` | 删除行 |
+| `row-field-change` | `(index, field, value)` | 行字段变更（触发金额重算） |
+| `open-product-dialog` | `index` | 打开当前行的商品弹窗（`v1.7-b` 目标协议） |
+| `product-selected` | `(index, productId)` | 商品选中，触发字段回填 |
+
+**键盘流（`v1.7-c` 第一版）**：
+
+- 主录入列顺序固定为：`商品选择 → 商品编码 → 商品名称 → 规格 → 单位 → 数量 → 单价 → 备注`
+- `Tab` 到当前行最后一格时，默认跳到下一行第一格
+- 若当前已是最后一行，则自动补一行并跳转
+- `Shift+Tab` 按相反顺序回退；当前行第一格可回退到上一行最后一格
+- 不纳入第一版焦点链：清空按钮、操作列按钮、合计行、底部操作区
+- 编辑态下高亮当前录入行，便于连续录单时定位焦点所在行
+
+**组件公开方法**：
+
+- `focusFirstEditableCell()`：聚焦第一行“商品选择”，供“保存并新建”成功后继续录单使用
+
+补充：
+
+- 当前轮次瘦身已停在两步：
+  - 焦点 / 键盘流抽到 `useOrderItemTableFocus.js`
+  - 商品选择列抽到 `OrderProductSelectCell.vue`
+- 商品编码 / 商品名称 / 规格 / 单位 这 4 列虽然模板相似，但目前仍保留在 `OrderItemTable.vue` 内联渲染
+- 原因：
+  - 这 4 列主要是简单输入模板重复，而不是独立职责块
+  - 若现在抽成通用文本列组件，会明显增加参数化复杂度，降低直接可读性
+- 数量 / 单价列当前也不建议继续抽离：
+  - `el-input-number` 焦点节点比普通 `el-input` 更敏感
+  - 继续拆分会放大 `Tab / Shift+Tab`、行高亮和自动补行回归风险
+- 后续仅在新增列级交互或模板差异继续扩大时，再按需求驱动评估是否继续拆分
+
+### 5.2 `ProductSelectDialog.vue`
+
+**Props**：
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| `visible` | Boolean | 弹窗开关 |
+| `keyword` | String | 当前搜索关键字 |
+| `products` | Array | 候选商品列表 |
+| `loading` | Boolean | 商品列表加载状态 |
+| `selectedProductId` | Number\|String\|null | 当前选中商品 |
+
+**Emits**：
+
+| Event | 参数 | 说明 |
+|-------|------|------|
+| `update:visible` | `visible` | 控制弹窗显隐 |
+| `search` | `keyword` | 远程搜索 |
+| `select` | `product` | 单击或双击选中商品 |
+| `confirm` | `product` | 点击确认后回填到当前行 |
+| `quick-create` | `keyword` | 预留商品快速新建入口（`v1.7-b` 先预留，不要求完整实现） |
+
+### 5.3 `QuickCreateDialog.vue`
+
+**Props**：`visible`, `title`, `width`, `loading`, `confirmText`  
+**Emits**：`update:visible`, `confirm`  
+通过默认 slot 承载表单，可复用于快速新建供应商 / 客户 / 商品。
+
+### 5.4 `OrderSummary.vue`
+
+**Props**：`itemList`（Array）  
+自动计算并展示：行数（`lineCount`）、合计数量（`totalQuantity`）、合计金额（`totalAmount`）。
 
 ---
 
-## 第三步：分阶段改造计划
+## 6. ERP 扩展路线
 
-| 阶段 | 目标 | 主要产出 | 风险 |
-|------|------|---------|------|
-| **1** | 抽逻辑层，不改页面 | `utils/orderHelper.js`、`utils/printUtils.js`、`composables/useOrderCalc.js`、`useOrderValidation.js`、`useProductSearch.js` | 极低 |
-| **2** | 重构入库页 | `composables/useOrderForm.js`、`useOrderItems.js`、`useAiRecognition.js`、`useQuickCreate.js`；`components/order/OrderItemTable.vue`、`AiRecognitionDialog.vue`、`QuickCreateDialog.vue`；重写 `InboundCreateView.vue` (~200行) | 中 |
-| **3** | 重构出库页 | 复用阶段2全部产出，重写 `OutboundCreateView.vue` (~150行) | 低 |
-| **4** | 独立打印模板 | `utils/printAdapter.js`、`utils/printService.js`、`components/print/PrintTemplate.vue`；重构 `InboundPrintView.vue` + `OutboundPrintView.vue` | 低 |
-| **5** | 补充增强 | `OrderSummary.vue` 汇总组件；操作区完整按钮（保存并新建/预览/清空）；草稿离开提示；出库库存余量展示 | 低 |
+当前系统是 WMS（入库单、出库单）。向轻 ERP 演进时，单据体系需扩展：
 
-全程保持**路由路径不变**，不修改后端 API，不影响已有功能。
+| 单据类型 | 状态 | 复用基础 |
+|---------|------|---------|
+| 入库单（采购入库） | ✅ 已实现 | — |
+| 出库单（销售出库） | ✅ 已实现 | — |
+| 采购单 | 待规划 | `useOrderForm` + `useOrderItems` + `useOrderCalc` |
+| 销售单 | 待规划 | 同上 |
+| 调拨单 | 待规划 | 同上，双仓库字段 |
+| 盘点单 | 待规划 | 独立流程 |
 
----
-
-## 第四步：文件落地修改点
-
-### 新增文件
-
-```
-frontend/src/
-  composables/
-    useOrderForm.js          — 页面状态机 + 单据头表单 + 草稿加载/保存/提交
-    useOrderItems.js         — 明细行增/删/插入 + 商品联动
-    useOrderCalc.js          — 纯函数：行金额 + 合计数量 + 合计金额
-    useOrderValidation.js    — 三层校验
-    useProductSearch.js      — 商品远程搜索
-    useAiRecognition.js      — AI 流程（上传/识别/草稿/确认）
-    useQuickCreate.js        — 快速新建弹窗逻辑
-  components/
-    order/
-      OrderItemTable.vue     — 可编辑明细表格（props/emit 解耦）
-      AiRecognitionDialog.vue — AI 识别对话框（emit confirmed 事件）
-      QuickCreateDialog.vue  — 通用快速新建弹窗
-      OrderSummary.vue       — 汇总区域组件
-    print/
-      PrintTemplate.vue      — 通用打印模板（纯渲染）
-  utils/
-    orderHelper.js           — createEmptyItem / parsePageData / displayText / PAGE_MODE / ORDER_STATUS 等常量
-    printUtils.js            — toChineseAmount / padPrintItems（从两个 PrintView 合并）
-    printAdapter.js          — buildInboundPrintData / buildOutboundPrintData
-    printService.js          — openPrintPreview / triggerPrint / exportPdf（预留）
-```
-
-### 修改文件
-
-| 文件 | 改动方向 | 改造阶段 |
-|------|---------|---------|
-| `views/inbound/InboundCreateView.vue` | 从 1564 行重构为 ~200 行，使用 composables + 组件 | 2 |
-| `views/outbound/OutboundCreateView.vue` | 从 1231 行重构为 ~150 行 | 3 |
-| `views/inbound/InboundPrintView.vue` | 移除重复函数，使用 printAdapter + PrintTemplate | 4 |
-| `views/outbound/OutboundPrintView.vue` | 同上 | 4 |
-
-### 不修改的文件
-
-- `api/inbound.js` / `api/outbound.js` / `api/ai.js` — API 层已足够清晰
-- `utils/request.js` / `utils/auth.js` — 基础设施
-- `views/inbound/InboundDetailView.vue` 等详情页 — 阶段 5 以后再考虑
-- 所有路由配置 / 后端代码
+**扩展原则**：新单据类型只需新增页面级 `useXxxCreatePage.js`，复用全部基础 composable，不修改通用层。
 
 ---
 
-## 第五步：关键代码设计
+## 7. 待实现事项（阶段 6+）
 
-### 5.1 页面常量与数据模型（`utils/orderHelper.js`）
-
-```js
-export const ORDER_TYPE   = { INBOUND: 'inbound', OUTBOUND: 'outbound' }
-export const PAGE_MODE    = { CREATE: 'create', EDIT: 'edit', VIEW: 'view', CONFIRM: 'confirm', READONLY: 'readonly' }
-export const ORDER_STATUS = { DRAFT: 1, COMPLETED: 2, VOID: 3 }
-
-export function createEmptyItem() {
-  return {
-    productId: null, productCode: '', productName: '',
-    specification: '', unit: '',
-    quantity: 1, unitPrice: 0, remark: ''
-  }
-}
-
-export function today() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-export function parsePageData(payload) {
-  if (Array.isArray(payload)) return { list: payload, total: payload.length }
-  return {
-    list: Array.isArray(payload?.list) ? payload.list : [],
-    total: typeof payload?.total === 'number' ? payload.total : 0
-  }
-}
-
-export function displayText(value) {
-  if (value === null || value === undefined) return '-'
-  return String(value).trim() || '-'
-}
-```
-
-### 5.2 单据逻辑层核心接口（`composables/useOrderForm.js`）
-
-```js
-export function useOrderForm(orderType) {
-  // 返回：
-  // form, items, summary         — 三层数据模型
-  // pageMode, currentDraftId     — 状态
-  // pageTitle                    — 动态标题
-  // loadDraft(draftId)           — 草稿加载
-  // handleSaveDraft()            — 保存草稿
-  // handleSaveAndNew()           — 保存并新建
-  // handleSubmit(validateFn)     — 提交
-  // resetForm()                  — 清空
-  // onImportFromAI(aiDraft)      — AI 导入
-}
-```
-
-### 5.3 行交互处理（`composables/useOrderItems.js`）
-
-```js
-export function useOrderItems(items) {
-  const addRow = () => items.push(createEmptyItem())
-
-  const insertRow = (afterIndex) =>
-    items.splice(afterIndex + 1, 0, createEmptyItem())
-
-  const removeRow = (index) => {
-    if (items.length <= 1) { ElMessage.warning('至少保留一条明细'); return }
-    items.splice(index, 1)
-  }
-
-  const onProductSelected = (index, productId, productOptions) => {
-    const p = productOptions.find(p => Number(p.id) === Number(productId))
-    const row = items[index]
-    if (p) {
-      row.productCode = p.productCode || ''
-      row.productName = p.productName || ''
-      row.specification = p.specification || ''
-      row.unit = p.unit || ''
-      row.unitPrice = Number(p.salePrice || 0)
-    } else {
-      Object.assign(row, { productCode: '', productName: '', specification: '', unit: '' })
-    }
-  }
-
-  return { addRow, insertRow, removeRow, onProductSelected }
-}
-```
-
-### 5.4 计算函数（`composables/useOrderCalc.js`）
-
-```js
-export function useOrderCalc(items) {
-  const calcRowAmount = (row) =>
-    (Number(row.quantity || 0) * Number(row.unitPrice || 0)).toFixed(2)
-
-  const totalQuantity = computed(() =>
-    items.reduce((s, r) => s + Number(r.quantity || 0), 0))
-
-  const totalAmount = computed(() =>
-    items.reduce((s, r) =>
-      s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0
-    ).toFixed(2))
-
-  return { calcRowAmount, totalQuantity, totalAmount }
-}
-```
-
-### 5.5 打印数据适配器（`utils/printAdapter.js`）
-
-```js
-import { padPrintItems, toChineseAmount } from './printUtils'
-
-export function buildInboundPrintData(detail) {
-  return {
-    title: '采购入库单',
-    headerFields: [
-      { label: '入库仓库', value: '总仓库', span: 6 },
-      { label: '单据编号', value: detail.orderNo || '-', span: 5 },
-      { label: '供货单位', value: detail.supplierName || '-', span: 6 },
-      { label: '录单日期', value: detail.createdTime || '-', span: 5 },
-      { label: '来源类型', value: detail.sourceType === 'AI' ? 'AI识别' : '手工录入', span: 11 },
-      { label: '备注', value: detail.remark || '-', span: 11 }
-    ],
-    items: padPrintItems(detail.itemList),
-    totalAmount: detail.totalAmount ?? '-',
-    totalAmountChinese: toChineseAmount(detail.totalAmount)
-  }
-}
-
-export function buildOutboundPrintData(detail) {
-  return {
-    title: '销售出库单',
-    headerFields: [
-      { label: '出库仓库', value: '总仓库', span: 6 },
-      { label: '单据编号', value: detail.orderNo || '-', span: 5 },
-      { label: '客户名称', value: detail.customerName || '-', span: 6 },
-      { label: '录单日期', value: detail.createdTime || '-', span: 5 },
-      { label: '备注', value: detail.remark || '-', span: 11 }
-    ],
-    items: padPrintItems(detail.itemList),
-    totalAmount: detail.totalAmount ?? '-',
-    totalAmountChinese: toChineseAmount(detail.totalAmount)
-  }
-}
-```
-
-### 5.6 打印服务层（`utils/printService.js`）
-
-```js
-export const PrintType = { INBOUND: 'inbound', OUTBOUND: 'outbound' }
-
-export function openPrintPreview(id, type) {
-  window.open(`/${type}/print/${id}`, '_blank')
-}
-
-export function triggerPrint() {
-  window.print()
-}
-
-// 预留 PDF 导出扩展点（阶段5实现）
-export function exportPdf(id, type) {
-  // TODO: 集成 html2pdf 或后端 Jasper 导出
-  console.warn('PDF 导出尚未实现', id, type)
-}
-```
-
-### 5.7 重构后 InboundCreateView.vue 骨架
-
-```vue
-<template>
-  <div class="order-workbench">
-    <el-card shadow="never">
-      <!-- A. 单据头 -->
-      <template #header>
-        <span class="order-title">{{ pageTitle }}</span>
-      </template>
-      <OrderHeader
-        :form="form"
-        :editable="pageMode !== PAGE_MODE.READONLY"
-        :order-type="ORDER_TYPE.INBOUND"
-        @field-change="onHeaderFieldChange"
-      />
-
-      <!-- B. 明细表 -->
-      <OrderItemTable
-        :items="items"
-        :editable="pageMode !== PAGE_MODE.READONLY"
-        :product-options="productOptions"
-        :product-loading="productLoading"
-        :order-type="ORDER_TYPE.INBOUND"
-        @row-add="addRow"
-        @row-insert="insertRow"
-        @row-delete="removeRow"
-        @row-field-change="onRowFieldChange"
-        @product-selected="onProductSelected"
-        @product-search="handleProductSearch"
-      />
-
-      <!-- C. 汇总区 -->
-      <OrderSummary :total-quantity="totalQuantity" :total-amount="totalAmount" />
-
-      <!-- D. 操作区 -->
-      <div class="order-actions">
-        <el-button @click="resetForm" :disabled="pageMode === PAGE_MODE.READONLY">清空</el-button>
-        <el-button type="success" :loading="submitting" @click="handleSaveDraft"
-          :disabled="pageMode === PAGE_MODE.READONLY">
-          {{ currentDraftId ? '更新草稿' : '保存草稿' }}
-        </el-button>
-        <el-button @click="handleSaveAndNew" :disabled="pageMode === PAGE_MODE.READONLY">
-          保存并新建
-        </el-button>
-        <el-button type="primary" plain @click="aiVisible = true"
-          :disabled="pageMode === PAGE_MODE.READONLY">
-          智能识别导入
-        </el-button>
-        <el-button type="primary" @click="onPrint" :disabled="!currentDraftId">打印</el-button>
-      </div>
-    </el-card>
-
-    <AiRecognitionDialog
-      v-model:visible="aiVisible"
-      order-type="inbound"
-      :product-options="productOptions"
-      @confirmed="onImportFromAI"
-    />
-  </div>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import OrderItemTable from '../../components/order/OrderItemTable.vue'
-import OrderSummary from '../../components/order/OrderSummary.vue'
-import AiRecognitionDialog from '../../components/order/AiRecognitionDialog.vue'
-import { useOrderForm } from '../../composables/useOrderForm'
-import { useOrderItems } from '../../composables/useOrderItems'
-import { useOrderCalc } from '../../composables/useOrderCalc'
-import { useOrderValidation } from '../../composables/useOrderValidation'
-import { useProductSearch } from '../../composables/useProductSearch'
-import { openPrintPreview } from '../../utils/printService'
-import { ORDER_TYPE, PAGE_MODE } from '../../utils/orderHelper'
-
-const route = useRoute()
-const aiVisible = ref(false)
-
-const { form, items, pageMode, pageTitle, currentDraftId, submitting,
-        loadDraft, handleSaveDraft, handleSaveAndNew, resetForm, onImportFromAI
-      } = useOrderForm(ORDER_TYPE.INBOUND)
-
-const { addRow, insertRow, removeRow, onProductSelected, onRowFieldChange } = useOrderItems(items)
-const { totalQuantity, totalAmount } = useOrderCalc(items)
-const { validateForm } = useOrderValidation(form, items, ORDER_TYPE.INBOUND)
-const { productOptions, productLoading, handleProductSearch } = useProductSearch()
-
-const onHeaderFieldChange = (field, value) => { form[field] = value }
-const onPrint = () => openPrintPreview(currentDraftId.value, 'inbound')
-
-onMounted(() => {
-  const draftId = route.query.draftId
-  if (draftId) loadDraft(draftId)
-})
-</script>
-```
+| 项目 | 优先级 | 说明 |
+|------|:------:|------|
+| `OrderItemTable` 瘦身 | 中 | 当前轮次已收口：焦点/键盘流已抽到 `useOrderItemTableFocus.js`，商品选择列已拆到 `OrderProductSelectCell.vue`；商品编码/名称/规格/单位与数量/单价列暂不继续抽象，后续仅在新增需求驱动下再评估 |
+| 键盘录入流增强 | 中 | 剩余弹窗内部焦点管理、Enter/F3 等快捷键后续再做 |
+| `ProductFormView` / `CustomerFormView` | 低 | 当前为空文件，确认用途或删除 |
 
 ---
 
-## 界面风格约定
+## 8. UI 设计参考
 
-**整体风格**：
-- 浅灰底（`#f5f5f5`）+ 白色卡片，区块边框使用 `1px solid #e8e8e8`
-- 表格优先，不用堆叠卡片式表单，"更像业务软件，不像互联网后台"
-- 数字列（数量/单价/金额）右对齐
-- 状态标签用 `el-tag`（草稿=info，已确认=success，已作废=danger）
+### 8.1 两款进销存软件共同验证的录单模式
 
-**三个核心交互规则**（参考传统进销存软件分析结论）：
+| 设计原则 | 智慧记（2023） | 辛巴商贸通+（2024） | 我们的目标 |
+|---------|:----------:|:-------------:|:--------:|
+| 预置空行 | 11 行 | 26+ 行 | 8 行 |
+| 单元格常驻控件（Excel 式） | ✓ | ✓ | ✓（已实现） |
+| 合计行嵌入表格末行 | ✓ | ✓ | ✓（已实现） |
+| 操作区快捷键标注 | 部分 | ✓（F3等） | S/P/C |
+| 单据编号右上角 | ✓ | ✓ | ✓（已实现） |
 
-1. **预置空行**：明细表格初始化时默认 8 行空行，不是"点按钮才出现行"。空行不参与计算，视觉上像一张等待填写的空白单据。用户直接在第一行开始录入，录单节奏不被打断。
+### 8.2 辛巴商贸通+ 界面结构（参考）
 
-2. **合计行内嵌表格**：合计数量和合计金额作为表格最后一行展示，与明细行使用相同列结构，数字在对应列下方对齐。不在表格外单独搭一个汇总区。
+```
+┌──────────────────────────────────────────────────────────────┐
+│ 供货单位 | 经手人 | 部门 | 付款期限       票单日期  单据编号   │
+│ 仓库 | 折扣 | 税率 | 预设售价           应付款/预付款/本单付款 │
+│ 摘要 | 附加说明 | 送货员 | 备注                               │
+├──────────────────────────────────────────────────────────────┤
+│ 明细表（26+ 行预置，全格直接可编辑）                           │
+│ 商品编号│名称│条码│规格│型号│品牌│单位│数量│单价│金额│折扣│税额 │
+│ ─────────────────────── 合 计 ──────────────────────────    │
+├──────────────────────────────────────────────────────────────┤
+│ 付款账户 | 发票信息 | 运输费用 | 优惠金额   ← 不引入          │
+├──────────────────────────────────────────────────────────────┤
+│ 打开 | 条码(F3) | 草稿                    [✓确认] [✗取消]    │
+└──────────────────────────────────────────────────────────────┘
+```
 
-3. **操作区左辅右主**：左侧放辅助操作（查看历史、智能识别导入），右侧放主操作（保存/打印/清空）。主操作按钮可标注快捷键（如"保存草稿(S)"），减少鼠标依赖。
-
-**其他约定**：
-- 单据编号和日期在单据头**右上角**醒目展示，字号稍大，只读
-- 商品列宽应充分利用，不用在表格里放笨重的全宽 select；后续可改为单元格内嵌 `···` 触发搜索弹窗
-- 操作区按钮不做成卡片顶部，固定在卡片底部或页面底部，不随滚动消失
-
----
-
-## UI 参考分析
-
-> 本节记录重构界面设计时参考的传统进销存软件截图分析，供实现时对照。
-
-参考截图：智慧记进销存「销售单」录单界面（2023年截图）
-
-### 参考截图的关键设计点
-
-| 设计点 | 参考界面的做法 | 我们的借鉴方向 | 优先级 |
-|--------|-------------|-------------|--------|
-| 表格空行 | 默认显示 11 行空行 | 初始化预置 8 行，空行不计入汇总 | 高 |
-| 合计行 | 嵌入表格末行，数量/金额列对齐 | `el-table` summary-method 或追加固定行 | 高 |
-| 单据编号/日期 | 右上角大字，与客户字段分左右两栏 | 单据头采用左右两栏布局 | 中 |
-| 操作区分组 | 左：查看历史/导入；右：保存/打印/清空 | 同，按钮标注快捷键 | 高 |
-| 品名"···"弹出选择 | 单元格内小按钮触发搜索弹窗 | 阶段 2 先用 el-select，后续可改 | 低（阶段5） |
-| 折扣率 | 底部单独字段，联动折后金额 | 当前无折扣需求，暂不引入 | 不引入 |
-| 营业员/结算账户 | 底部辅助字段 | 当前无此字段，暂不引入 | 不引入 |
-
-### 与参考界面的主要差异
-
-我们**不照搬**的内容：
-- 蓝色皮肤和旧式视觉风格（保持 Element Plus 浅色风格）
-- 折扣率、营业员、结算账户字段（当前业务不需要）
-- 销售出货/销售退货单选按钮（入库/出库是独立页面）
-- Tab 多开单据（路由架构不同）
-
-我们**重点借鉴**的核心逻辑：
-- 预置空行 → 像 Excel 一样直接录入
-- 合计行内嵌 → 数字对齐，一目了然
-- 操作区左辅右主 → 效率优先
-- 单据编号右上角 → 单据身份感
-
----
-
-## 改造效果（实际结果）
-
-| 指标 | 重构前 | 重构后（实际） |
-|------|--------|-------------|
-| InboundCreateView 行数 | 1564 | **158** ✓ |
-| OutboundCreateView 行数 | 1231 | **160** ✓ |
-| InboundPrintView 行数 | 355 | **73** ✓ |
-| OutboundPrintView 行数 | 315 | **63** ✓ |
-| 代码重复率 | >80% | <5% ✓ |
-| 可独立测试的逻辑单元 | 0 | 7 个基础 composables + 2 个页面级 composable + 4 个工具模块 ✓ |
-| `toChineseAmount` 副本数 | 2 | **1**（utils/printUtils.js）✓ |
-| Pinia 使用情况 | 安装未使用 | **auth store 已接入** ✓ |
-
----
-
-## 历史演进摘要
-
-- v1.0–v1.3：CreateView 将手工流程、AI 识别流程、快速新建弹窗全部内联，无逻辑层抽象，单文件超 1200 行。
-- v1.4：功能完整，打印页已独立路由，但逻辑重复率 > 80%，无 composables 层，无汇总区，操作区不完整。
-- v1.5（当前）：完成阶段1–4重构——建立 composables 层（9个文件）、通用组件层（7个组件）、工具层（4个文件）、打印架构三层分离；CreateView 降至 ~160 行，PrintView 降至 ~70 行。
-- 下一步（阶段5）：预置空行、合计行内嵌表格、操作区完整按钮，向 ERP 单据工作台交互靠拢。
+**我们不引入**：折扣/税率列、批号/辅助数量、付款账户、发票信息、多仓库/部门/经手人（单仓库单角色场景）。

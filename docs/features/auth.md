@@ -120,10 +120,11 @@ LoginInterceptor.preHandle()
 | `/ai/inbound/confirm` | POST | AI 入库确认 |
 | `/ai/outbound/confirm` | POST | AI 出库确认 |
 | `/operation/log/list` | GET | 操作日志查询 |
+| `/user/add` | POST | 新增用户 |
+| `/user/update` | PUT | 修改用户 |
+| `/user/delete/{id}` | DELETE | 删除用户 |
 
 > 此列表是权限控制的**权威来源**，新增 Admin-only 接口时必须同步更新此列表和 `LoginInterceptor`。
->
-> ⚠️ **已知缺口**：`/user/add`、`/user/update`、`/user/delete/{id}` 三个用户管理接口当前在 `LoginInterceptor` 中**未受保护**，任何登录用户均可调用。修复见 BACKLOG B4。
 
 ---
 
