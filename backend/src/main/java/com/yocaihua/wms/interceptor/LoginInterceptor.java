@@ -95,6 +95,15 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (path.startsWith("/supplier/delete/") && "DELETE".equals(method)) {
             return true;
         }
+        if (path.startsWith("/user/add") && "POST".equals(method)) {
+            return true;
+        }
+        if (path.startsWith("/user/update") && "PUT".equals(method)) {
+            return true;
+        }
+        if (path.startsWith("/user/delete/") && "DELETE".equals(method)) {
+            return true;
+        }
         if (path.startsWith("/inbound-order/") && path.endsWith("/confirm") && "POST".equals(method)) {
             return true;
         }

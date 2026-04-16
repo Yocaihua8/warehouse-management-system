@@ -6,7 +6,7 @@
 
     <groupId>com.yocaihua</groupId>
     <artifactId>wms-desktop-client</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.7.0-SNAPSHOT</version>
     <name>wms-desktop-client</name>
     <description>JavaFX desktop client for warehouse-management-system</description>
 

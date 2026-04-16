@@ -70,6 +70,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :background="true"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </el-card>
 
     <el-dialog
@@ -187,29 +200,61 @@ import { getAiInboundRecordList, getAiInboundRecordDetail } from '../../api/ai'
 
 const loading = ref(false)
 const tableData = ref([])
+const total = ref(0)
+const pageNum = ref(1)
+const pageSize = ref(10)
 const detailDialogVisible = ref(false)
 const detailLoading = ref(false)
 const detailData = ref(null)
 const route = useRoute()
 const router = useRouter()
 
+const parsePageData = (payload) => {
+  if (Array.isArray(payload)) {
+    return { list: payload, total: payload.length }
+  }
+
+  return {
+    list: Array.isArray(payload?.list) ? payload.list : [],
+    total: typeof payload?.total === 'number' ? payload.total : 0
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getAiInboundRecordList()
+    const res = await getAiInboundRecordList({
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    })
     if (res.data?.code === 1) {
-      tableData.value = res.data?.data || []
+      const pageData = parsePageData(res.data?.data)
+      tableData.value = pageData.list
+      total.value = pageData.total
     } else {
       tableData.value = []
+      total.value = 0
       ElMessage.error(res.data?.message || '加载AI识别历史失败')
     }
   } catch (error) {
     tableData.value = []
+    total.value = 0
     console.error('加载AI识别历史失败：', error)
     ElMessage.error(error?.response?.data?.message || error?.message || '加载AI识别历史失败')
   } finally {
     loading.value = false
   }
+}
+
+const handleCurrentChange = (currentPage) => {
+  pageNum.value = currentPage
+  loadData()
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  pageNum.value = 1
+  loadData()
 }
 
 const formatStatus = (status) => {
@@ -363,5 +408,11 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
+}
+
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

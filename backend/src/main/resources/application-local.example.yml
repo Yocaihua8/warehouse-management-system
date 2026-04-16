@@ -1,10 +1,19 @@
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/wms?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    # 推荐通过环境变量传入，不要在此文件写明文密码
-    # 启动命令示例：DB_USERNAME=root DB_PASSWORD=yourpwd mvn spring-boot:run
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+  config:
+    activate:
+      on-profile: local
+
+# local 示例边界说明：
+# - application.yaml 负责统一维护 datasource/redis/mail/ai 等配置键与默认值
+# - 本文件仅示例“本地专属覆盖项”写法，避免与 application.yaml 重复定义
+#
+# 推荐通过环境变量传入敏感信息，不要在任何 yml 写明文密码：
+#   DB_USERNAME=root
+#   DB_PASSWORD=yourpwd
+#   REDIS_PASSWORD=your_redis_pwd
+#
+# IntelliJ IDEA：Run > Edit Configurations > Environment variables
+# 例如：DB_USERNAME=root;DB_PASSWORD=yourpwd
 
 app:
   cors:

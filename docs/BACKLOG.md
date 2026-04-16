@@ -1,86 +1,167 @@
 # 开发 Backlog
 
-> 记录当前已知的待开发项、问题修复和技术改进。
-> 已完成的功能不在此处记录，请看各 [功能规格文档](./features/)。
-> 最后更新：2026-04
+> **阅读约定**：
+> - 本文件只记录**尚未完成**的事项，已完成内容在底部"已完成"区
+> - 规模估算：`XS`<半天 · `S`<1天 · `M`<3天 · `L`<1周 · `XL`>1周
+> - 最后更新：2026-04-16
 
 ---
 
-## P0 — 影响基本可用性，优先修复
+## P0 — 阻断性，立即处理
 
-| # | 类型 | 描述 | 涉及位置 |
-|---|------|------|---------|
-| 1 | 工程化 | 历史 `sql/V1_x` 增量已迁入 Flyway；后续数据库变更需只在 `db/migration` 新增版本脚本 | `backend/src/main/resources/db/migration` |
-| 2 | 启动稳定性 | （已完成）Flyway 历史脚本 MySQL 兼容写法已完成一轮统一；后续仅补新增场景回归验证 | `backend/src/main/resources/db/migration` |
-| 3 | 工程化 | （已完成）启动期业务服务直接改表逻辑已移除，结构变更收口到 Flyway | `service/impl/ProductServiceImpl.java` |
-| 4 | 配置治理 | 收敛 `application.yaml`、`application-local.yml`、Docker Compose 的配置边界，避免 profile 和环境变量覆盖关系混乱 | `backend/src/main/resources/*.yml`、根目录 `docker-compose.yml` |
-| 5 | 测试治理 | （阶段完成）已移除环境耦合的 contextLoads；后续再补独立 test profile 与分层测试策略 | `backend/src/test`、`backend/src/main/resources` |
+| # | 描述 | 验收标准 | 规模 |
+|---|------|---------|:----:|
+| （暂无） | 当前无阻断性问题 | — | — |
 
 ---
 
-## P1 — 功能不完整，影响演示或核心体验
+## P1 — 功能缺口，影响核心体验
 
-| # | 类型 | 描述 | 涉及位置 |
-|---|------|------|---------|
-| 1 | 前后端契约 | （已完成）商品与客户编辑页 `status/code` 契约已对齐；后续补边界场景回归用例 | 前端 `views/product|customer/`、后端对应 Mapper XML |
-| 2 | AI 能力口径 | （已完成）前端上传限制与 Python AI 能力已统一为图片；后续再补 PDF 路线评估 | 前端 `components/order/`、`python-ai-service/app.py`、AI 文档 |
-| 3 | 列表性能 | AI 入库 / 出库历史当前未分页，需补分页接口与页面能力 | 后端 `AiRecognitionRecordMapper.xml`、前端 `views/ai/` |
-| 4 | Web 能力闭环 | 供应商管理在后端和桌面端较完整，但 Web 端仍缺页面、菜单和完整 API 接入 | 前端 `router/`、`views/`、`api/supplier.js` |
-| 5 | 功能缺失 | AI 出库识别历史列表页与详情页已补齐；后续可继续补筛选条件与分页参数 | `AiAssistController`、前端 `views/ai/` |
-| 6 | 功能缺失 | 用户管理前端页面已补第一版（列表/新增/编辑/删除），后续可补重置密码独立流程与操作日志 | `frontend/views/user/` |
-| 7 | 稳定性 | AI 服务调用已支持可配置超时；后续可按环境细化不同接口超时策略 | `config/RestTemplateConfig.java` |
-| 8 | 业务规则 | 已限制停用客户/供应商被新订单引用；后续可补“历史草稿在确认前二次校验主数据状态” | `OutboundOrderServiceImpl`、`InboundOrderServiceImpl` |
-| 9 | 业务规则 | 删除客户/供应商已增加关联订单校验（含历史名称快照兜底）；后续可补数据库 FK 约束统一防护 | `CustomerServiceImpl`、`SupplierServiceImpl` |
+| # | 描述 | 验收标准 | 规模 | 里程碑 |
+|---|------|---------|:----:|--------|
+| （暂无） | 当前无 P1 功能缺口 | — | — | — |
 
 ---
 
-## P2 — 工程化改进，不影响功能
+## P2 — 工程化改进
 
-| # | 类型 | 描述 | 涉及位置 |
-|---|------|------|---------|
-| 9 | 代码质量 | `AiRecognitionServiceImpl` 已完成第一阶段拆分（OCR/匹配/单据组装/草稿持久化）；后续继续拆分记录校验与VO组装 | `service/impl/AiRecognitionServiceImpl.java`、`service/ai/*` |
-| 10 | 代码质量 | `InboundOrderServiceImpl` 与 `OutboundOrderServiceImpl` 已完成公共基类抽取第一步（权限/分页/导出工具函数）；后续可继续抽”草稿保存与更新模板流程” | `service/impl/AbstractOrderServiceSupport.java`、两个 ServiceImpl |
-| 11 | 可观测性 | Dashboard 已接入 `@Cacheable` + Caffeine（30s TTL）；后续可按场景补 `@CacheEvict` 精细失效策略 | `DashboardServiceImpl`、`application.yaml` |
-| 12 | 工程化 | 已补首批核心 Service Mockito 测试（入库/出库确认与作废库存联动）；后续继续补草稿编辑、异常分支与库存不足场景 | `backend/src/test/java/com/yocaihua/wms/service/impl/*Test.java` |
-| 13 | 工程化 | 已补 Docker Compose 首版（MySQL + 后端 + Python AI 一键启动）；后续可补前端服务、镜像分层优化与生产参数模板 | 根目录 `docker-compose.yml`、`backend/Dockerfile`、`python-ai-service/Dockerfile` |
-| 14 | 前端 | 已统一用户会话状态到 Pinia `auth` store（token/username/nickname/role）；后续可继续将权限判断从 `utils/auth` 迁移为组件内直接消费 store | `frontend/src/stores/auth.js`、`frontend/src/utils/auth.js` |
-| 15 | 前端重构 | **[阶段1]** 抽取前端逻辑层：从 InboundCreateView/OutboundCreateView 提取 composables（useOrderForm/useOrderItems/useOrderCalc/useOrderValidation/useProductSearch）和工具函数（orderHelper.js/printUtils.js），功能不变 | `frontend/src/composables/`（新建） |
-| 16 | 前端重构 | **[阶段2]** 重构入库单创建页：InboundCreateView.vue 从 1564 行降至 ~180 行，拆出 OrderItemTable、AiRecognitionDialog、QuickCreateDialog 组件 | `frontend/src/views/inbound/InboundCreateView.vue`、`frontend/src/components/order/` |
-| 17 | 前端重构 | **[阶段3]** 重构出库单创建页：OutboundCreateView.vue 复用阶段2全部 composables + 组件，降至 ~150 行 | `frontend/src/views/outbound/OutboundCreateView.vue` |
-| 18 | 前端重构 | **[阶段4]** 独立打印模板：提取 printAdapter.js + PrintTemplate.vue，InboundPrintView/OutboundPrintView 各降至 ~60 行，消除 toChineseAmount/buildPrintItems 重复代码 | `frontend/src/utils/printAdapter.js`、`frontend/src/components/print/` |
-| 19 | 前端重构 | **[阶段5]** 补充增强：DetailView 共享组件、OrderSummary 汇总区、草稿离开提示（onBeforeRouteLeave） | `frontend/src/views/inbound/InboundDetailView.vue` 等 |
+| # | 描述 | 验收标准 | 规模 | 里程碑 |
+|---|------|---------|:----:|--------|
+| 8 | **GitHub Required Checks 配置**：仓库侧尚未把 `backend-test` 配成 required check；CI `./mvnw verify` 覆盖率门槛失败时无法阻止 PR 合并 | 仓库 `Settings > Branches / Rulesets` 中 `backend-test` + `frontend-test` 均配置为 required check；覆盖率失败会阻断 PR | XS | v1.9 |
+| 10 | **商品自定义字段 UI 改造**：当前 `customFieldsJson` 在前端以原始 JSON textarea 录入，普通用户不可用；改为动态键值对编辑器（"+ 新增字段"按钮，每行一个 key-value 输入对），自动序列化为 JSON 写入后端，无需用户手写 JSON | ① 商品新增/编辑页"自定义字段"区域显示键值对编辑器；② 可增删行；③ 保存时自动序列化为合法 JSON；④ 详情页反序列化展示为键值列表 | S | v1.9 |
+| 9 | **前端页面级联动测试**：composable 与关键组件测试已就绪；下一步补创建页保存链（`saveDraft` 调用 + 路由跳转模拟）和弹窗联动（AI 识别弹窗 confirm 写回 form）的自动化验证 | 补测 `InboundOrderCreate` / `OutboundOrderCreate` 保存链路至少一条 happy path + 一条 error path | M | v1.9 |
+| 6 | **`OrderItemTable` 瘦身（按需求驱动再评估）**：当前轮次已收口在”焦点/键盘流 composable 抽离 + 商品选择列子组件拆分”；商品编码/名称/规格/单位与数量/单价列暂不继续抽象，避免为简单模板引入过度参数化，以及触发 `el-input-number` 焦点复杂度回升 | 仅在新增交互或列级需求出现时，再评估是否继续拆分剩余列 | — | 按需 |
 
 ---
 
-## P3 — 功能增强，MVP 后考虑
+## P3 — 功能增强，v2.0 后评估
 
-| # | 类型 | 描述 |
-|---|------|------|
-| 15 | 功能增强 | Token 可切换 Redis 持久化会话（`auth.session-store=redis`）；后续可继续评估 JWT 无状态化改造 |
-| 16 | 功能增强 | 已补低库存预警通知首版（定时检查 + 手动触发 + 邮件/Webhook 渠道）；后续可补企业微信/钉钉签名协议与通知记录持久化 |
-| 17 | 功能增强 | 已补首页近7天入库/出库趋势折线图（后端 `/dashboard/trend` + 前端首页 SVG 渲染）；后续可补金额趋势与多时间窗口切换 |
-| 18 | 功能增强 | AI 识别商品匹配增强：引入编辑距离 / 向量相似度替代纯字符串匹配 |
-| 19 | 功能增强 | 操作日志（记录用户的关键操作，如登录、确认、作废） |
-| 20 | 功能增强 | 桌面端停止服务功能（设置页当前只能启动，不能停止） |
-
----
-
-## 已完成（近期）
-
-| # | 类型 | 描述 | 涉及位置 |
-|---|------|------|---------|
-| D1 | 安全 | Token 会话已支持可切换持久化（DB / Redis）；默认 DB，设置 `auth.session-store=redis` 后改为 Redis TTL 会话 | `common/TokenStore.java`、`interceptor/LoginInterceptor.java` |
-| D2 | 性能 | 列表分页已增加 `pageSize` 上限（`MAX_PAGE_SIZE=200`），避免超大分页全表查询 | `service/impl/*ServiceImpl.java` |
-| D3 | 架构 | AI 识别服务已完成首轮职责拆分：`OcrAdapterService`、`ProductMatchService`、`AiOrderAssemblerService`、`AiDraftPersistenceService` | `service/ai/*`、`service/impl/AiRecognitionServiceImpl.java` |
-| D4 | 架构 | 入库/出库单服务已抽取公共支撑基类 `AbstractOrderServiceSupport`，统一权限校验、分页归一化、导出工具函数 | `service/impl/AbstractOrderServiceSupport.java`、`InboundOrderServiceImpl`、`OutboundOrderServiceImpl` |
-| D5 | 功能 | 低库存预警通知首版已落地：支持定时扫描、管理员手动触发、邮件/Webhook 渠道与冷却去重 | `service/impl/LowStockAlertServiceImpl.java`、`StockController.java` |
+| # | 描述 | 规模 |
+|---|------|:----:|
+| 6 | **Token JWT 化**：评估 JWT 方案，替代当前 DB/Redis 会话存储；需处理主动失效（Deny List）机制 | L |
+| 7 | **AI 商品匹配增强**：引入编辑距离或向量相似度，替代当前纯字符串匹配；增加置信度分级展示 | L |
+| 8 | **桌面端停止服务**：系统设置页当前只能启动服务，增加停止服务、进程状态可见性 | S |
+| 9 | **用户密码独立重置流程**：当前编辑用户可直接改密码，无独立重置入口 | S |
+| 10 | **Testcontainers 集成测试**：使用 Testcontainers 启动真实 MySQL，测试 Flyway 迁移链 + Mapper 层 | M |
+| 11 | **自定义字段扩展到客户/供应商**：当前 `customFieldsJson` 仅商品支持；向客户、供应商实体扩展，需 Flyway 新增字段 + CRUD 接口调整 + 前端键值编辑器复用；依赖 P2 #10 商品 UI 改造先完成 | M |
+| 12 | **字段定义管理（完整自定义字段方案）**：Admin 可在后台定义字段模板（字段名、类型：文本/数字/日期/下拉、是否必填），商品/客户/供应商表单自动渲染对应字段；需新增 `custom_field_definition` 表；是 ERP 方向"用户可扩展数据模型"的核心能力 | XL |
 
 ---
 
-## 已知 Bug / 边界问题
+## 技术债务
 
-| # | 描述 | 严重程度 | 状态 |
-|---|------|---------|------|
-| B1 | 创建出库草稿后、确认前，若其他单据先消耗了同一商品库存，确认时会报库存不足（属预期行为）；提示已优化为“单号+商品+需出库+可用库存”可读文案 | 低 | 已优化 |
-| B2 | CORS 默认来源已改为 `localhost/127.0.0.1` 任意端口，并支持 `APP_CORS_ALLOWED_ORIGIN_PATTERNS` 环境变量覆盖 | 低 | 已优化 |
-| B3 | 已确认 `sourceType` 通过 `ai_recognition_record` 反查推导（`InboundOrderMapper` 的 `EXISTS/子查询`）；并补充组合索引 `idx_doc_type_confirmed_order_id` 优化该链路 | 低 | 已确认并优化 |
+| # | 描述 | 影响 | 规模 |
+|---|------|------|:----:|
+| T1 | 配置来源不够收口：`application.yaml` / `application-local.yml` / `docker-compose.yml` 三套来源并存，本地手工启动与 Compose 启动默认值不同（会话存储、数据库密码）；新人上手需额外对照 | 新人上手困难，本地与 Docker 行为差异 | S |
+| T3 | 前端页面级联动与 E2E 仍缺自动化保障：composable 与关键组件测试已覆盖；下一步补创建页保存链（`saveDraft` + 路由跳转）和弹窗联动，已纳入 P2 #9 | 前端回归覆盖面仍不完整 | S |
+| T4 | Web 与桌面端能力仍有差异，桌面端供应商管理缺编辑/删除 | 功能覆盖不一致 | M |
+
+---
+
+## 已知 Bug
+
+| # | 描述 | 严重程度 |
+|---|------|:-------:|
+| （暂无） | 当前无已知 Bug | — |
+
+---
+
+## 已完成
+
+### 安全 / 认证
+| # | 描述 | 涉及位置 |
+|---|------|---------|
+| D1 | Token 会话支持 DB/Redis 可切换持久化（`AUTH_SESSION_STORE` 环境变量） | `TokenStore.java`、`LoginInterceptor.java` |
+| D23 | 用户管理接口权限收口：`/user/add|update|delete` 纳入 Admin-only 校验 | `LoginInterceptor.java` |
+
+### 后端架构
+| # | 描述 | 涉及位置 |
+|---|------|---------|
+| D2 | AI 识别服务职责拆分：OcrAdapter / ProductMatch / Assembler / Persistence | `service/ai/` |
+| D3 | 入库/出库公共基类 `AbstractOrderServiceSupport`（权限校验/分页/导出） | `service/impl/AbstractOrderServiceSupport.java` |
+| D4 | 补充 `flyway-mysql` 依赖，解决 Flyway 10+ 不支持 MySQL 8.0 | `backend/pom.xml` |
+| D28 | `AiRecognitionServiceImpl` 进一步拆分 Validation / VoAssembler 子服务 | `service/ai/` |
+
+### 功能
+| # | 描述 | 涉及位置 |
+|---|------|---------|
+| D5 | 低库存预警：定时扫描 + 手动触发 + 邮件/Webhook + 冷却去重 | `LowStockAlertServiceImpl.java` |
+| D6 | 首页近 7 天趋势折线图（`/dashboard/trend` + 前端 SVG） | `DashboardServiceImpl.java`、`HomeView.vue` |
+| D7 | 操作日志（记录关键操作，Admin-only 查询） | `OperationLogController.java` |
+| D8 | 用户管理 Web 端首版（列表/新增/编辑/删除） | `UserController.java`、`UserListView.vue` |
+| D9 | AI 出库识别历史列表页与详情页 | `AiOutboundRecordListView.vue` |
+| D10 | 停用客户/供应商下单拦截 + 删除关联订单双重校验 | `CustomerServiceImpl.java`、`SupplierServiceImpl.java` |
+| D24 | AI 入库/出库历史分页补齐（消除全量加载风险） | `AiAssistController.java`、`views/ai/` |
+| D25 | 供应商管理 Web 端补齐（列表/新增/编辑/删除，接入导航） | `frontend/src/views/supplier/` |
+| D26 | ERP 工作台体验增强（阶段5）：预置空行/合计行内嵌/操作区/库存余量 | `OrderItemTable.vue`、`use*CreatePage.js` |
+
+### 工程化
+| # | 描述 | 涉及位置 |
+|---|------|---------|
+| D11 | 列表分页 `pageSize` 上限（`MAX_PAGE_SIZE=200`） | `service/impl/*ServiceImpl.java` |
+| D12 | Docker Compose 首版（MySQL + Redis + Python AI + 后端） | `docker-compose.yml` |
+| D13 | 后端核心 Service Mockito 测试首批（入库/出库确认/作废库存联动） | `backend/src/test/java/` |
+| D14 | Flyway 历史脚本 MySQL 兼容写法统一 | `db/migration/` |
+| D15 | Dashboard Caffeine 缓存（30s TTL） | `DashboardServiceImpl.java` |
+| D21 | 配置治理收敛：`application.yaml` 统一键，`application-local.yml` 仅本地覆盖 | `backend/src/main/resources/` |
+| D27 | 后端单测补齐（草稿编辑、库存不足异常、AI 识别异常路径） | `backend/src/test/java/` |
+| D29 | 文档同步：`frontend-order-pages.md`、`master-data.md` 与代码对齐 | `docs/features/` |
+
+### 前端
+| # | 描述 | 涉及位置 |
+|---|------|---------|
+| D16 | Pinia auth store（统一管理 token/username/nickname/role） | `stores/auth.js` |
+| D17 | 商品/客户编辑页 `status/code` 前后端契约对齐 | `views/product|customer/` |
+| D18 | 前端上传限制与 Python AI 统一为图片格式 | `components/order/` |
+| D19 | AI 服务调用支持可配置超时 | `config/RestTemplateConfig.java` |
+| D20 | **前端单据页重构（阶段1-4）**：composables 层（9个）/ 通用组件层（7个）/ 工具层（4个）/ 打印三层架构；CreateView 1564/1231 行→158/160 行 | `composables/`、`components/`、`utils/` |
+| D22 | **前端单据页重构（阶段2收口）**：四区布局对齐，事件命名统一 | `views/`、`components/order/OrderItemTable.vue` |
+| D30 | 商品列行内可编辑修复（选商品后可继续修正规格/单位） | `OrderItemTable.vue` |
+| D31 | 列表页双左栏收敛，释放主表格宽度 | `InboundListView.vue`、`OutboundListView.vue` |
+| D32 | 单据底部操作区重排（左辅右主） | `InboundCreateView.vue`、`OutboundCreateView.vue` |
+| D33 | 工作台骨架落地：`order-workbench/` 目录 + 创建页拆分为路由壳 + 容器 | `components/order-workbench/`、`InboundOrderCreate.vue` |
+| D34 | 提交链路统一：保存草稿→确认提交串联 | `useInboundCreatePage.js`、`useOutboundCreatePage.js` |
+| D35 | `useOrderWorkbenchPage` 共享核心落地：入库/出库创建页收敛为“共享核心 + 薄适配层” | `useOrderWorkbenchPage.js`、`useInboundCreatePage.js`、`useOutboundCreatePage.js` |
+| D36 | 商品弹窗选品首版：`OrderDetailTable` 托管 `ProductSelectDialog`，替换明细表内联 `el-select` | `OrderDetailTable.vue`、`OrderItemTable.vue`、`ProductSelectDialog.vue` |
+| D37 | 键盘录入流首版：主录入列 `Tab` 顺序跳转，末格自动补新行并跳到下一行第一格 | `OrderItemTable.vue` |
+| D38 | 保存并新建自动聚焦：保存成功后聚焦第一行“商品选择”，继续进入既有 `Tab` 主录入链 | `useOrderWorkbenchPage.js`、`OrderItemTable.vue`、`OrderDetailTable.vue`、`InboundOrderCreate.vue`、`OutboundOrderCreate.vue` |
+| D39 | 行焦点高亮：编辑态明细表高亮当前录入行，并与既有 `Tab` 主录入链联动 | `OrderItemTable.vue` |
+| D40 | 键盘录入流补齐 `Shift+Tab`：支持同一行反向回退，第一格可回退到上一行最后一格 | `OrderItemTable.vue` |
+| D41 | 前端 Vitest 首批单测落地：`npm test` 可执行，覆盖 `useOrderCalc`、`useOrderValidation`、`useOrderItems` | `package.json`、`vite.config.js`、`src/composables/__tests__/` |
+| D42 | 统一编辑/只读明细表实现：详情页切换到 `OrderItemTable`，通过显示开关复用同一组件；旧 `OrderDetailItemTable.vue` 暂保留待清理 | `OrderItemTable.vue`、`InboundDetailView.vue`、`OutboundDetailView.vue` |
+| D43 | GitHub Actions CI 首版：新增 `.github/workflows/ci.yml`，PR 自动执行 `backend-test` 与 `frontend-test`；可配合 Required status checks 阻止失败测试合并 | `.github/workflows/ci.yml` |
+| D44 | 后端 JaCoCo 覆盖率报告首版：`mvn verify` 生成 HTML 报告，当前先提供可视化覆盖率，不直接启用 80% fail threshold | `backend/pom.xml`、`backend/target/site/jacoco/` |
+| D45 | `CustomerServiceImpl` Mockito 单测首版：补齐分页、详情、新增、修改、删除核心分支，单类行覆盖率提升到约 `57.85%` | `CustomerServiceImplTest.java` |
+| D46 | `SupplierServiceImpl` Mockito 单测首版：补齐分页、详情、新增、修改、删除核心分支，单类行覆盖率提升到约 `52.81%` | `SupplierServiceImplTest.java` |
+| D47 | `ProductServiceImpl` Mockito 单测首版：补齐分页、详情、新增、修改、删除与 `customFieldsJson`/库存初始化核心分支，单类行覆盖率提升到约 `65.89%` | `ProductServiceImplTest.java` |
+| D48 | `StockServiceImpl` Mockito 单测首版：补齐分页、手工库存调整、默认操作人与默认原因等核心分支，单类行覆盖率提升到约 `37.36%` | `StockServiceImplTest.java` |
+| D49 | `StockFlowServiceImpl` Mockito 单测首版：补齐入库/出库库存变更、作废回滚、手工调整日志与库存不足提示核心分支，单类行覆盖率提升到约 `93.01%` | `StockFlowServiceImplTest.java` |
+| D50 | `LowStockAlertServiceImpl` Mockito 单测首版：补齐管理员手动触发、冷却去重、邮件/Webhook 渠道与定时检查核心分支，单类行覆盖率提升到约 `87.74%` | `LowStockAlertServiceImplTest.java` |
+| D51 | `DashboardServiceImpl` Mockito 单测首版：补齐首页汇总计数、趋势参数校验、缺口日期补零与空行/空值处理，单类行覆盖率提升到 `100%` | `DashboardServiceImplTest.java` |
+| D52 | `UserServiceImpl` Mockito 单测首版：补齐登录、当前用户、Admin-only 用户管理、默认管理员保护与当前用户自保护等核心分支，单类行覆盖率提升到约 `97.67%` | `UserServiceImplTest.java` |
+| D53 | `OperationLogServiceImpl` Mockito 单测首版：补齐写日志归一化、写入失败容错与分页筛选参数归一化，单类行覆盖率提升到 `100%` | `OperationLogServiceImplTest.java` |
+| D54 | `SystemServiceImpl` Mockito 单测首版：补齐系统健康检查、数据库/AI 状态汇总、AI 消息回退与 bootstrap 配置映射，单类行覆盖率提升到 `100%` | `SystemServiceImplTest.java` |
+| D55 | `StockAdjustLogServiceImpl` Mockito 单测首版：补齐分页默认值、页大小上限、offset 计算与 `productName` 原样透传行为，单类行覆盖率提升到 `100%` | `StockAdjustLogServiceImplTest.java` |
+| D56 | `AiRecognitionServiceImpl` Mockito 单测补齐成功识别路径：覆盖入库/出库 OCR 成功后草稿落库、商品匹配、识别成功状态更新与结果 VO 返回，单类行覆盖率提升到约 `26.07%` | `AiRecognitionServiceImplTest.java` |
+| D57 | `AiRecognitionServiceImpl` Mockito 单测补齐确认成单成功路径：覆盖入库/出库 DTO 校验、草稿保存、正式单据与明细持久化、库存联动、确认状态更新和操作日志，单类行覆盖率提升到约 `72.99%` | `AiRecognitionServiceImplTest.java` |
+| D58 | `AbstractOrderServiceSupport` Mockito 单测首版：补齐管理员权限、作废原因/备注、分页归一化、文本/金额/时间格式化、Excel 汇总行写入与 Jasper 模板加载，单类行覆盖率提升到 `100%` | `AbstractOrderServiceSupportTest.java` |
+| D59 | `AiRecognitionServiceImpl` Mockito 单测补齐重复确认异常路径：覆盖入库/出库 `markConfirmedToOrder<=0` 时回查记录并抛“已确认”异常，单类行覆盖率提升到约 `73.93%` | `AiRecognitionServiceImplTest.java` |
+| D60 | `AiRecognitionServiceImpl` Mockito 单测补齐出库确认异常路径：覆盖 `confirmOutbound(...)` 的“未匹配客户”与“保存出库单明细失败”分支，单类行覆盖率提升到约 `78.20%` | `AiRecognitionServiceImplTest.java` |
+| D61 | `AiRecognitionServiceImpl` Mockito 单测补齐入库确认前置解析异常：覆盖 `confirmInbound(...)` 的“供应商不存在”与“供应商名称不能为空”分支，单类行覆盖率提升到约 `82.46%` | `AiRecognitionServiceImplTest.java` |
+| D62 | `AiRecognitionServiceImpl` Mockito 单测补齐出库确认前置解析异常：覆盖 `confirmOutbound(...)` 的“客户不存在”与“客户名称不能为空”分支，单类行覆盖率提升到约 `83.89%` | `AiRecognitionServiceImplTest.java` |
+| D63 | `AiRecognitionServiceImpl` Mockito 单测补齐出库客户解析剩余异常：覆盖 `confirmOutbound(...)` 的“匹配后客户不存在”与“客户显示名不能为空”分支，单类行覆盖率提升到约 `86.26%` | `AiRecognitionServiceImplTest.java` |
+| D64 | `OrderItemTable` 第一阶段瘦身：抽取 `useOrderItemTableFocus`，将焦点注册、Tab/Shift+Tab、行高亮与首格聚焦逻辑移出组件主体，`OrderItemTable.vue` 行数降至约 `406` 行 | `useOrderItemTableFocus.js`、`OrderItemTable.vue` |
+| D65 | `OrderItemTable` 第二阶段瘦身：拆分商品选择列为 `OrderProductSelectCell`，保持焦点/弹窗协议不变，`OrderItemTable.vue` 行数进一步降至约 `394` 行 | `OrderProductSelectCell.vue`、`OrderItemTable.vue` |
+| D66 | `OrderItemTable` 第三阶段评估结论：当前轮次先停在焦点逻辑与商品列拆分，不继续抽象商品编码/名称/规格/单位与数量/单价列，避免为简单模板引入通用参数膨胀和 `el-input-number` 焦点风险 | `BACKLOG.md`、`frontend-order-pages.md` |
+| D67 | `InboundOrderServiceImpl` Mockito 单测补齐 `saveInboundOrder(...)` 首批核心分支：覆盖保存成功主链与“同一商品重复出现在入库单中”异常，单类行覆盖率提升到约 `50.87%`，`service.impl` 包级行覆盖率提升到约 `68.10%` | `InboundOrderServiceImplTest.java`、`testing.md` |
+| D68 | `InboundOrderServiceImpl` Mockito 单测继续补齐 `saveInboundOrder(...)` 异常分支：覆盖“供应商已停用”与“保存入库单明细失败”，单类行覆盖率提升到约 `51.56%`，`service.impl` 包级行覆盖率提升到约 `68.22%` | `InboundOrderServiceImplTest.java`、`testing.md` |
+| D69 | `InboundOrderServiceImpl` Mockito 单测继续补齐 `saveInboundOrder(...)` 异常分支：覆盖“商品不存在”与“商品库存记录不存在”，单类行覆盖率提升到约 `52.25%`，`service.impl` 包级行覆盖率提升到约 `68.33%` | `InboundOrderServiceImplTest.java`、`testing.md` |
+| D70 | `InboundOrderServiceImpl` Mockito 单测继续补齐 `saveInboundOrder(...)` 收尾异常分支：覆盖“保存入库单失败”与“入库单明细不能为空”，单类行覆盖率提升到约 `52.94%`，`service.impl` 包级行覆盖率提升到约 `68.45%` | `InboundOrderServiceImplTest.java`、`testing.md` |
+| D71 | `InboundOrderServiceImpl` Mockito 单测集中补齐确认/作废/草稿编辑/分页/详情/Excel/PDF 导出主链：单类行覆盖率提升到约 `92.04%`，`service.impl` 包级行覆盖率提升到约 `74.93%`，阶段 A 当前优先级正式切到 `OutboundOrderServiceImpl` 与 `StockServiceImpl` | `InboundOrderServiceImplTest.java`、`testing.md` |
+| D72 | `OutboundOrderServiceImpl` Mockito 单测集中补齐保存/草稿编辑/确认/作废/分页/详情/Excel/PDF 导出主链与高价值异常：单类行覆盖率提升到约 `95.04%`，`service.impl` 包级行覆盖率明显抬升 | `OutboundOrderServiceImplTest.java`、`testing.md` |
+| D73 | `StockServiceImpl` Mockito 单测补齐分页 offset、Excel 导出与 CSV 导出：单类行覆盖率提升到约 `96.70%`，库存服务主链覆盖从“仅查询/调整”扩展到“查询/调整/导出” | `StockServiceImplTest.java`、`testing.md` |
+| D74 | 后端覆盖率门槛落地：`service.impl` 包级行覆盖率提升到约 `86.75%` 后，在 `backend/pom.xml` 启用 JaCoCo `80%` 行覆盖率检查，并将 GitHub Actions 后端 job 切换为 `./mvnw verify`，同时补 `chmod +x mvnw` 消除 Linux runner 权限风险（原 `T5` 已收口） | `backend/pom.xml`、`.github/workflows/ci.yml`、`testing.md` |
+| D75 | Maven 版本号与语义化版本收口：将 `backend/pom.xml`、`desktop-client/pom.xml`、`app.version` 默认值统一到 `1.7.0-SNAPSHOT`，消除 `0.0.1-SNAPSHOT` 与 `CHANGELOG.md` 最新发布序列不一致的问题 | `backend/pom.xml`、`desktop-client/pom.xml`、`application.yaml`、`SystemServiceImpl.java` |
+| D76 | 前端 Vitest 组件测试首批落地：补齐 `OrderItemTable` 与 `ProductSelectDialog` 的渲染 / 关键交互测试，前端测试范围从“仅 composable 纯逻辑”扩展到“composable + 关键组件” | `frontend/src/components/**/__tests__/`、`testing.md` |
+| D77 | 左侧导航栏折叠/展开落地：`MainLayout` 支持 220px/64px 侧栏切换、Header 折叠按钮、菜单图标、折叠态原生 tooltip 与 `localStorage` 跨刷新保持，并补 `MainLayout` 组件测试 | `MainLayout.vue`、`MainLayout.spec.js`、`testing.md` |
+| D78 | `CustomerServiceImpl` / `SupplierServiceImpl` 覆盖率补测完成：补齐导出 Excel、成功查询与剩余高价值失败分支后，两者行覆盖率提升到约 `95.87%` / `97.75%`，`service.impl` 包级行覆盖率提升到约 `91.68%`，为后续评估 `85%` 或 BRANCH 门槛留出余量 | `CustomerServiceImplTest.java`、`SupplierServiceImplTest.java`、`testing.md` |

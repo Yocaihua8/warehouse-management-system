@@ -206,7 +206,7 @@
             <el-button
               type="danger"
               link
-              @click="removeAiItem($index)"
+              @click="handleRemoveAiItem($index)"
               :disabled="(aiDraft.itemList || []).length === 1"
             >
               删除
@@ -309,7 +309,9 @@ import { addProduct, getProductList } from '../../api/product'
 import { addSupplier, getSupplierList } from '../../api/supplier'
 import { confirmInbound, getAiInboundRecordDetail, recognizeInbound } from '../../api/ai'
 import { getInboundOrderDetail } from '../../api/inbound'
+import { useAiRecognition } from '../../composables/useAiRecognition'
 import { useProductSearch } from '../../composables/useProductSearch'
+import { useQuickCreate } from '../../composables/useQuickCreate'
 import { parsePageData } from '../../utils/orderHelper'
 import QuickCreateDialog from './QuickCreateDialog.vue'
 
@@ -318,19 +320,29 @@ const router = useRouter()
 
 const MAX_AI_FILE_SIZE = 20 * 1024 * 1024
 
-const aiDialogVisible = ref(false)
-const aiRecognizing = ref(false)
-const aiConfirming = ref(false)
-const aiUploadFile = ref(null)
-const aiDraft = ref(null)
-const aiManualReviewed = ref(false)
+const {
+  aiDialogVisible,
+  aiRecognizing,
+  aiConfirming,
+  aiUploadFile,
+  aiDraft,
+  aiManualReviewed,
+  normalizeInboundAiDraft,
+  markAiDraftDirty,
+  getAiWarningText,
+  addAiItem,
+  removeAiItem,
+  hasUnmatchedAiItems,
+  hasInvalidAiItems,
+  buildAiConfirmPayload,
+  resetAiDraftState
+} = useAiRecognition()
 
 const supplierOptions = ref([])
 const supplierLoading = ref(false)
 
-const quickCreateSupplierVisible = ref(false)
-const quickCreateSupplierLoading = ref(false)
-const quickCreateSupplierForm = ref({
+const { buildTempCode, createQuickCreateState } = useQuickCreate()
+const quickCreateSupplierState = createQuickCreateState({
   supplierCode: '',
   supplierName: '',
   contactPerson: '',
@@ -339,10 +351,7 @@ const quickCreateSupplierForm = ref({
   remark: ''
 })
 
-const quickCreateProductVisible = ref(false)
-const quickCreateProductLoading = ref(false)
-const quickCreateProductRow = ref(null)
-const quickCreateProductForm = ref({
+const quickCreateProductState = createQuickCreateState({
   productCode: '',
   productName: '',
   specification: '',
@@ -351,6 +360,14 @@ const quickCreateProductForm = ref({
   salePrice: 0,
   remark: ''
 })
+
+const quickCreateSupplierVisible = quickCreateSupplierState.visible
+const quickCreateSupplierLoading = quickCreateSupplierState.loading
+const quickCreateSupplierForm = quickCreateSupplierState.form
+const quickCreateProductVisible = quickCreateProductState.visible
+const quickCreateProductLoading = quickCreateProductState.loading
+const quickCreateProductRow = quickCreateProductState.targetRow
+const quickCreateProductForm = quickCreateProductState.form
 
 const {
   productOptions,
@@ -362,9 +379,6 @@ const {
   onError: (message) => ElMessage.error(message)
 })
 
-const buildTempProductCode = () => `AI${Date.now()}`
-const buildTempSupplierCode = () => `AIS${Date.now()}`
-
 const upsertSupplierOption = (supplier) => {
   if (!supplier || supplier.id == null) {
     return
@@ -374,62 +388,6 @@ const upsertSupplierOption = (supplier) => {
     supplierOptions.value = [supplier, ...supplierOptions.value]
   }
 }
-
-const normalizeInboundAiItem = (item = {}, index = 0) => ({
-  lineNo: Number(item.lineNo) || index + 1,
-  productName: item.productName || '',
-  specification: item.specification || '',
-  unit: item.unit || '',
-  quantity: Number(item.quantity) || 1,
-  unitPrice: Number(item.unitPrice ?? 0),
-  amount: Number(item.amount ?? ((Number(item.quantity) || 0) * Number(item.unitPrice ?? 0))),
-  matchedProductId: item.matchedProductId ?? null,
-  matchStatus: item.matchStatus || 'unmatched',
-  remark: item.remark || ''
-})
-
-const normalizeInboundAiDraft = (draft) => {
-  if (!draft) {
-    return null
-  }
-  const normalizedItemList = Array.isArray(draft.itemList)
-    ? draft.itemList.map((item, index) => normalizeInboundAiItem(item, index))
-    : []
-
-  return {
-    ...draft,
-    supplierName: draft.supplierName || '',
-    matchedSupplierId: draft.matchedSupplierId ?? null,
-    supplierMatchStatus: draft.supplierMatchStatus || 'unmatched',
-    rawText: draft.rawText || '',
-    remark: draft.remark || 'AI识别确认生成入库单',
-    itemList: normalizedItemList.length > 0 ? normalizedItemList : [normalizeInboundAiItem({}, 0)]
-  }
-}
-
-const markAiDraftDirty = () => {
-  if (!aiDraft.value) {
-    return
-  }
-  aiManualReviewed.value = false
-}
-
-const formatWarningText = (warnings, warningsJson) => {
-  if (Array.isArray(warnings) && warnings.length > 0) {
-    return warnings.join('；')
-  }
-  if (!warningsJson) {
-    return ''
-  }
-  try {
-    const parsed = JSON.parse(warningsJson)
-    return Array.isArray(parsed) ? parsed.join('；') : warningsJson
-  } catch (error) {
-    return warningsJson
-  }
-}
-
-const getAiWarningText = () => formatWarningText(aiDraft.value?.warnings, aiDraft.value?.warningsJson)
 
 const loadSupplierOptions = async () => {
   try {
@@ -495,46 +453,11 @@ const handleAiMatchedProductChange = (row, productId) => {
   markAiDraftDirty()
 }
 
-const addAiItem = () => {
-  if (!aiDraft.value) {
-    return
-  }
-  aiDraft.value.itemList.push(normalizeInboundAiItem({}, aiDraft.value.itemList.length))
-  markAiDraftDirty()
-}
-
-const removeAiItem = (index) => {
-  if (!aiDraft.value || !Array.isArray(aiDraft.value.itemList)) {
-    return
-  }
-  if (aiDraft.value.itemList.length === 1) {
+const handleRemoveAiItem = (index) => {
+  const removed = removeAiItem(index)
+  if (!removed) {
     ElMessage.warning('至少保留一条AI识别明细')
-    return
   }
-  aiDraft.value.itemList.splice(index, 1)
-  aiDraft.value.itemList.forEach((item, itemIndex) => {
-    item.lineNo = itemIndex + 1
-  })
-  markAiDraftDirty()
-}
-
-const hasUnmatchedAiItems = () => (aiDraft.value?.itemList || []).some(item => !item.matchedProductId)
-
-const hasInvalidAiItems = () => {
-  return (aiDraft.value?.itemList || []).some(item => {
-    const lineNo = Number(item.lineNo)
-    const quantity = Number(item.quantity)
-    const unitPrice = Number(item.unitPrice)
-    const amount = Number(item.amount)
-    return !Number.isFinite(lineNo) ||
-      lineNo <= 0 ||
-      !Number.isFinite(quantity) ||
-      quantity <= 0 ||
-      !Number.isFinite(unitPrice) ||
-      unitPrice < 0 ||
-      !Number.isFinite(amount) ||
-      amount < 0
-  })
 }
 
 const findCreatedSupplierByCode = async (supplierCode) => {
@@ -554,29 +477,26 @@ const findCreatedProductByCode = async (productCode) => {
 }
 
 const openQuickCreateSupplier = () => {
-  quickCreateSupplierForm.value = {
-    supplierCode: buildTempSupplierCode(),
+  quickCreateSupplierState.open({
+    supplierCode: buildTempCode('AIS'),
     supplierName: aiDraft.value?.supplierName || '',
     contactPerson: '',
     phone: '',
     address: '',
     remark: 'AI识别草稿中快速新建供应商'
-  }
-  quickCreateSupplierVisible.value = true
+  })
 }
 
 const openQuickCreateProduct = (row) => {
-  quickCreateProductRow.value = row
-  quickCreateProductForm.value = {
-    productCode: buildTempProductCode(),
+  quickCreateProductState.open({
+    productCode: buildTempCode('AI'),
     productName: row.productName || '',
     specification: row.specification || '',
     unit: row.unit || '',
     category: 'AI识别新增',
     salePrice: Number(row.unitPrice || 0),
     remark: 'AI识别草稿中快速新建'
-  }
-  quickCreateProductVisible.value = true
+  }, row)
 }
 
 const handleQuickCreateSupplier = async () => {
@@ -590,7 +510,7 @@ const handleQuickCreateSupplier = async () => {
   }
 
   try {
-    quickCreateSupplierLoading.value = true
+    quickCreateSupplierState.loading.value = true
     const res = await addSupplier({
       supplierCode: quickCreateSupplierForm.value.supplierCode,
       supplierName: quickCreateSupplierForm.value.supplierName,
@@ -603,7 +523,7 @@ const handleQuickCreateSupplier = async () => {
       const created = await findCreatedSupplierByCode(quickCreateSupplierForm.value.supplierCode)
       if (!created) {
         ElMessage.error('供应商新增成功，但未能自动回填，请手动选择供应商')
-        quickCreateSupplierVisible.value = false
+        quickCreateSupplierState.close()
         return
       }
       upsertSupplierOption(created)
@@ -613,7 +533,7 @@ const handleQuickCreateSupplier = async () => {
         aiDraft.value.supplierMatchStatus = 'manual_created'
         markAiDraftDirty()
       }
-      quickCreateSupplierVisible.value = false
+      quickCreateSupplierState.close()
       ElMessage.success('供应商新增成功')
     } else {
       ElMessage.error(res.data?.message || '供应商新增失败')
@@ -621,7 +541,7 @@ const handleQuickCreateSupplier = async () => {
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || error?.message || '供应商新增失败')
   } finally {
-    quickCreateSupplierLoading.value = false
+    quickCreateSupplierState.loading.value = false
   }
 }
 
@@ -640,7 +560,7 @@ const handleQuickCreateProduct = async () => {
   }
 
   try {
-    quickCreateProductLoading.value = true
+    quickCreateProductState.loading.value = true
     const res = await addProduct({
       productCode: quickCreateProductForm.value.productCode,
       productName: quickCreateProductForm.value.productName,
@@ -661,8 +581,7 @@ const handleQuickCreateProduct = async () => {
         quickCreateProductRow.value.matchStatus = 'manual_created'
         markAiDraftDirty()
       }
-      quickCreateProductVisible.value = false
-      quickCreateProductRow.value = null
+      quickCreateProductState.close()
       ElMessage.success('商品新建成功')
     } else {
       ElMessage.error(res.data?.message || '商品新建失败')
@@ -670,7 +589,7 @@ const handleQuickCreateProduct = async () => {
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || error?.message || '商品新建失败')
   } finally {
-    quickCreateProductLoading.value = false
+    quickCreateProductState.loading.value = false
   }
 }
 
@@ -690,9 +609,7 @@ const beforeAiUpload = (file) => {
 
 const handleAiFileChange = (file) => {
   if (!file || !file.raw) {
-    aiUploadFile.value = null
-    aiDraft.value = null
-    aiManualReviewed.value = false
+    resetAiDraftState()
     return
   }
   aiUploadFile.value = file.raw
@@ -701,9 +618,7 @@ const handleAiFileChange = (file) => {
 }
 
 const handleAiFileRemove = () => {
-  aiUploadFile.value = null
-  aiDraft.value = null
-  aiManualReviewed.value = false
+  resetAiDraftState()
 }
 
 const handleAiRecognize = async () => {
@@ -733,25 +648,6 @@ const handleAiRecognize = async () => {
     aiRecognizing.value = false
   }
 }
-
-const buildAiConfirmPayload = () => ({
-  recordId: aiDraft.value?.recordId,
-  supplierId: aiDraft.value?.matchedSupplierId != null ? Number(aiDraft.value.matchedSupplierId) : null,
-  supplierName: aiDraft.value?.supplierName || '',
-  rawText: aiDraft.value?.rawText || '',
-  remark: aiDraft.value?.remark || 'AI识别确认生成入库单',
-  itemList: (aiDraft.value?.itemList || []).map(item => ({
-    lineNo: Number(item.lineNo),
-    productName: item.productName || '',
-    specification: item.specification || '',
-    unit: item.unit || '',
-    matchedProductId: item.matchedProductId != null ? Number(item.matchedProductId) : null,
-    quantity: Number(item.quantity),
-    unitPrice: Number(item.unitPrice),
-    amount: Number(item.amount),
-    remark: item.remark || ''
-  }))
-})
 
 const handleAiConfirmError = async (message) => {
   const errorMessage = message || 'AI确认失败'
@@ -810,9 +706,7 @@ const handleAiConfirm = async () => {
     const res = await confirmInbound(buildAiConfirmPayload())
     if (res.data?.code === 1) {
       aiDialogVisible.value = false
-      aiDraft.value = null
-      aiUploadFile.value = null
-      aiManualReviewed.value = false
+      resetAiDraftState()
 
       const orderId = res.data?.data
       let orderNo = ''

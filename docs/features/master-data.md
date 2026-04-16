@@ -23,9 +23,10 @@
 - `custom_fields_json` 支持自定义扩展字段，存储 JSON 字符串，系统在动态检测列不存在时可自动 DDL（`ProductServiceImpl`）
 
 ### 自定义字段（custom_fields_json）
+
 - 存储格式：合法 JSON 字符串，例如 `{"颜色":"红色","产地":"广州"}`
-- 写入时校验 JSON 合法性，不合法则拒绝
-- 前端可按需展示自定义字段
+- 写入时校验 JSON 合法性（必须为 JSON 对象，不超过 4000 字符）
+- 当前前端实现：原始 JSON textarea，用户需手动输入合法 JSON——仅开发者友好，待改造为键值对 UI（见 BACKLOG P2 #10）
 
 ### API
 | 接口 | 说明 |
@@ -43,8 +44,8 @@
 
 ### 特有规则
 - 客户与出库单关联（`outbound_order.customer_id`）
-- 删除时未做关联校验（当前实现），需注意：删除有历史出库单的客户不会报错，但历史单据有 `customer_name_snapshot` 保留名称
-- `status=0`（停用）仅前端层面的显示控制，后端未强制拦截停用客户的出库单创建
+- 删除时做双重关联校验：`countByCustomerId` + `countByCustomerNameWhenCustomerIdMissing`，命中即拒绝删除
+- `status=0`（停用）由后端强制拦截，停用客户不能用于新建/编辑出库单
 
 ### API
 | 接口 | 说明 |
@@ -63,7 +64,8 @@
 ### 特有规则
 - 供应商与入库单关联（`inbound_order.supplier_id`，可空）
 - 创建入库单时 `supplier_id` 可为空（支持临时供应商场景），`supplier_name` 直接存储
-- 同客户，删除供应商无关联校验
+- 删除时做双重关联校验：`countBySupplierId` + `countBySupplierNameWhenSupplierIdMissing`，命中即拒绝删除
+- `status=0`（停用）由后端强制拦截，停用供应商不能用于新建/编辑入库单
 
 ### API
 | 接口 | 说明 |
@@ -81,6 +83,4 @@
 
 | 问题 | 影响 |
 |------|------|
-| 删除客户/供应商无关联订单校验 | 可删除有历史订单的客户/供应商，历史订单展示依赖快照字段，不影响数据，但体验不一致 |
-| 停用状态未在后端强制限制 | 停用客户/供应商仍可被新订单引用 |
-| 商品列表无 status 筛选参数 | 前端无法过滤停用商品（需确认是否已实现） |
+| 商品列表无 status 筛选参数 | 前端无法按启用/停用过滤商品（需确认是否已实现） |

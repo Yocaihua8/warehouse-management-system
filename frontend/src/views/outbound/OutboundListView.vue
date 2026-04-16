@@ -1,35 +1,16 @@
 <template>
-  <div class="page-container list-layout">
-    <aside class="left-panel">
-      <el-card shadow="never" class="side-card">
-        <template #header>
-          <span>导航与筛选</span>
-        </template>
-        <div class="side-block">
-          <div class="side-title">快捷筛选</div>
-          <el-button text type="primary" @click="applyQuickStatus(1)">只看草稿</el-button>
-          <el-button text @click="applyQuickStatus('')">查看全部</el-button>
-        </div>
-        <div class="side-block">
-          <div class="side-title">批量操作</div>
-          <template v-if="isAdmin">
-            <el-button type="success" plain size="small" :disabled="!canBatchConfirm" @click="handleBatchConfirm">批量确认</el-button>
-            <el-button type="danger" plain size="small" :disabled="!canBatchVoid" @click="handleBatchVoid">批量作废</el-button>
-          </template>
-          <el-tag v-else type="info" size="small">操作员只读</el-tag>
-          <div class="side-tip">已选 {{ selectedRows.length }} 条</div>
-        </div>
-      </el-card>
-    </aside>
-
-    <div class="main-panel">
-      <el-card shadow="never" class="page-card">
+  <div class="page-container">
+    <el-card shadow="never" class="page-card">
       <template #header>
         <div class="card-header">
-          <span>出库单列表</span>
-          <el-button type="primary" @click="handleAdd">
-            新增出库单
-          </el-button>
+          <span class="page-title">出库单列表</span>
+          <div class="header-actions">
+            <el-button text type="primary" @click="applyQuickStatus(1)">只看草稿</el-button>
+            <el-button text @click="applyQuickStatus('')">查看全部</el-button>
+            <el-button type="primary" @click="handleAdd">
+              新增出库单
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -61,6 +42,19 @@
           </el-button>
         </el-form-item>
       </el-form>
+
+      <div class="list-tools">
+        <div class="tools-left">
+          <el-tag type="info" size="small">已选 {{ selectedRows.length }} 条</el-tag>
+        </div>
+        <div class="tools-right">
+          <template v-if="isAdmin">
+            <el-button type="success" plain size="small" :disabled="!canBatchConfirm" @click="handleBatchConfirm">批量确认</el-button>
+            <el-button type="danger" plain size="small" :disabled="!canBatchVoid" @click="handleBatchVoid">批量作废</el-button>
+          </template>
+          <el-tag v-else type="info" size="small">操作员只读</el-tag>
+        </div>
+      </div>
 
       <el-table
           v-loading="loading"
@@ -133,8 +127,7 @@
             @current-change="handleCurrentChange"
         />
       </div>
-      </el-card>
-    </div>
+    </el-card>
   </div>
 </template>
 
@@ -493,43 +486,6 @@ watch(
   padding: 24px;
 }
 
-.list-layout {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.left-panel {
-  width: 220px;
-  position: sticky;
-  top: 16px;
-}
-
-.main-panel {
-  flex: 1;
-  min-width: 0;
-}
-
-.side-card {
-  border-radius: 12px;
-}
-
-.side-block + .side-block {
-  margin-top: 16px;
-}
-
-.side-title {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 8px;
-}
-
-.side-tip {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #909399;
-}
-
 .page-card {
   border-radius: 12px;
 }
@@ -538,10 +494,38 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .query-form {
   margin-bottom: 16px;
+}
+
+.list-tools {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tools-left,
+.tools-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .table-area {

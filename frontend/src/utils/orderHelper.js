@@ -1,3 +1,22 @@
+export const ORDER_TYPE = {
+    INBOUND: 'inbound',
+    OUTBOUND: 'outbound'
+}
+
+export const PAGE_MODE = {
+    CREATE: 'create',
+    EDIT: 'edit',
+    VIEW: 'view',
+    CONFIRM: 'confirm',
+    READONLY: 'readonly'
+}
+
+export const ORDER_STATUS = {
+    DRAFT: 1,
+    COMPLETED: 2,
+    VOID: 3
+}
+
 export const parsePageData = (payload) => {
     if (Array.isArray(payload)) {
         return {
@@ -28,3 +47,21 @@ export const displayText = (value) => {
     return normalized || '-'
 }
 
+export const today = () => new Date().toISOString().slice(0, 10)
+
+export const createEmptyOrderItem = () => ({
+    productId: null,
+    productCode: '',
+    productName: '',
+    specification: '',
+    unit: '',
+    availableStock: null,
+    quantity: 1,
+    unitPrice: 0,
+    remark: ''
+})
+
+export const createOrderItemList = (count = 1) => {
+    const size = Number.isFinite(Number(count)) ? Math.max(1, Number(count)) : 1
+    return Array.from({ length: size }, () => createEmptyOrderItem())
+}

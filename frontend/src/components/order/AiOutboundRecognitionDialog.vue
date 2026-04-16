@@ -282,6 +282,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCustomerList, addCustomer } from '../../api/customer'
 import { getProductList, addProduct } from '../../api/product'
 import { confirmOutbound, getAiOutboundRecordDetail, recognizeOutbound } from '../../api/ai'
+import { useAiRecognition } from '../../composables/useAiRecognition'
+import { useQuickCreate } from '../../composables/useQuickCreate'
 import { parsePageData } from '../../utils/orderHelper'
 import QuickCreateDialog from './QuickCreateDialog.vue'
 
@@ -290,19 +292,62 @@ const router = useRouter()
 
 const MAX_AI_FILE_SIZE = 20 * 1024 * 1024
 
-const aiDialogVisible = ref(false)
-const aiRecognizing = ref(false)
-const aiConfirming = ref(false)
-const aiUploadFile = ref(null)
-const aiDraft = ref(null)
-const aiManualReviewed = ref(false)
+const {
+  aiDialogVisible,
+  aiRecognizing,
+  aiConfirming,
+  aiUploadFile,
+  aiDraft,
+  aiManualReviewed,
+  normalizeAiDraft,
+  markAiDraftDirty,
+  getAiWarningText,
+  hasUnmatchedAiItems,
+  hasInvalidAiItems,
+  buildAiConfirmPayload,
+  resetAiDraftState
+} = useAiRecognition({
+  confirmRemark: 'AI识别确认生成出库单',
+  normalizeDraft: (draft, ctx) => {
+    if (!draft) {
+      return null
+    }
+    const mappedItems = Array.isArray(draft.itemList)
+      ? draft.itemList.map((item, index) => ctx.normalizeItem(item, index))
+      : []
+    return {
+      ...draft,
+      customerName: draft.customerName || '',
+      rawText: draft.rawText || '',
+      remark: draft.remark || ctx.confirmRemark,
+      itemList: mappedItems
+    }
+  },
+  buildConfirmPayload: (draft, ctx) => ({
+    recordId: draft?.recordId,
+    customerId: draft?.matchedCustomerId != null ? Number(draft.matchedCustomerId) : null,
+    customerName: draft?.customerName || '',
+    rawText: draft?.rawText || '',
+    remark: draft?.remark || ctx.confirmRemark,
+    itemList: (draft?.itemList || []).map(item => ({
+      lineNo: Number(item.lineNo),
+      productName: item.productName || '',
+      specification: item.specification || '',
+      unit: item.unit || '',
+      matchedProductId: item.matchedProductId != null ? Number(item.matchedProductId) : null,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+      amount: Number(item.amount),
+      remark: item.remark || ''
+    }))
+  })
+})
 
 const customerOptions = ref([])
 const productOptions = ref([])
 
-const quickCreateCustomerVisible = ref(false)
-const quickCreateCustomerLoading = ref(false)
-const quickCreateCustomerForm = ref({
+const { buildTempCode, createQuickCreateState } = useQuickCreate()
+const quickCreateCustomerState = createQuickCreateState({
   customerCode: '',
   customerName: '',
   contactPerson: '',
@@ -311,10 +356,7 @@ const quickCreateCustomerForm = ref({
   remark: ''
 })
 
-const quickCreateProductVisible = ref(false)
-const quickCreateProductLoading = ref(false)
-const quickCreateProductRow = ref(null)
-const quickCreateProductForm = ref({
+const quickCreateProductState = createQuickCreateState({
   productCode: '',
   productName: '',
   specification: '',
@@ -323,9 +365,13 @@ const quickCreateProductForm = ref({
   salePrice: 0,
   remark: ''
 })
-
-const buildTempCustomerCode = () => `AIC${Date.now()}`
-const buildTempProductCode = () => `AIP${Date.now()}`
+const quickCreateCustomerVisible = quickCreateCustomerState.visible
+const quickCreateCustomerLoading = quickCreateCustomerState.loading
+const quickCreateCustomerForm = quickCreateCustomerState.form
+const quickCreateProductVisible = quickCreateProductState.visible
+const quickCreateProductLoading = quickCreateProductState.loading
+const quickCreateProductRow = quickCreateProductState.targetRow
+const quickCreateProductForm = quickCreateProductState.form
 
 const loadCustomers = async () => {
   try {
@@ -357,82 +403,27 @@ const loadProducts = async () => {
   }
 }
 
-const markAiDraftDirty = () => {
-  if (!aiDraft.value) {
-    return
-  }
-  aiManualReviewed.value = false
-}
-
-const formatWarningText = (warnings, warningsJson) => {
-  if (Array.isArray(warnings) && warnings.length > 0) {
-    return warnings.join('；')
-  }
-  if (!warningsJson) {
-    return ''
-  }
-  try {
-    const parsed = JSON.parse(warningsJson)
-    return Array.isArray(parsed) ? parsed.join('；') : warningsJson
-  } catch (error) {
-    return warningsJson
-  }
-}
-
-const getAiWarningText = () => formatWarningText(aiDraft.value?.warnings, aiDraft.value?.warningsJson)
-
-const normalizeOutboundAiItem = (item = {}, index = 0) => ({
-  lineNo: Number(item.lineNo) || index + 1,
-  productName: item.productName || '',
-  specification: item.specification || '',
-  unit: item.unit || '',
-  quantity: Number(item.quantity) || 1,
-  unitPrice: Number(item.unitPrice ?? 0),
-  amount: Number(item.amount ?? ((Number(item.quantity) || 0) * Number(item.unitPrice ?? 0))),
-  matchedProductId: item.matchedProductId ?? null,
-  matchStatus: item.matchStatus || 'unmatched',
-  remark: item.remark || ''
-})
-
-const normalizeOutboundAiDraft = (draft) => {
-  if (!draft) {
-    return null
-  }
-  return {
-    ...draft,
-    customerName: draft.customerName || '',
-    rawText: draft.rawText || '',
-    remark: draft.remark || 'AI识别确认生成出库单',
-    itemList: Array.isArray(draft.itemList)
-      ? draft.itemList.map((item, index) => normalizeOutboundAiItem(item, index))
-      : []
-  }
-}
-
 const openQuickCreateCustomer = () => {
-  quickCreateCustomerForm.value = {
-    customerCode: buildTempCustomerCode(),
+  quickCreateCustomerState.open({
+    customerCode: buildTempCode('AIC'),
     customerName: aiDraft.value?.customerName || '',
     contactPerson: '',
     phone: '',
     address: '',
     remark: 'AI识别草稿中快速新增客户'
-  }
-  quickCreateCustomerVisible.value = true
+  })
 }
 
 const openQuickCreateProduct = (row) => {
-  quickCreateProductRow.value = row
-  quickCreateProductForm.value = {
-    productCode: buildTempProductCode(),
+  quickCreateProductState.open({
+    productCode: buildTempCode('AIP'),
     productName: row?.productName || '',
     specification: row?.specification || '',
     unit: row?.unit || '',
     category: 'AI识别新增',
     salePrice: Number(row?.unitPrice || 0),
     remark: 'AI识别草稿中快速新增商品'
-  }
-  quickCreateProductVisible.value = true
+  }, row)
 }
 
 const handleMatchedCustomerChange = (value) => {
@@ -470,7 +461,7 @@ const handleQuickCreateCustomer = async () => {
   }
 
   try {
-    quickCreateCustomerLoading.value = true
+    quickCreateCustomerState.loading.value = true
     const res = await addCustomer({
       customerCode: quickCreateCustomerForm.value.customerCode,
       customerName: quickCreateCustomerForm.value.customerName,
@@ -486,7 +477,7 @@ const handleQuickCreateCustomer = async () => {
       )
       if (!created) {
         ElMessage.error('客户新增成功，但未能自动回填，请手动选择客户')
-        quickCreateCustomerVisible.value = false
+        quickCreateCustomerState.close()
         return
       }
       if (aiDraft.value) {
@@ -495,7 +486,7 @@ const handleQuickCreateCustomer = async () => {
         aiDraft.value.customerMatchStatus = 'manual_created'
         markAiDraftDirty()
       }
-      quickCreateCustomerVisible.value = false
+      quickCreateCustomerState.close()
       ElMessage.success('客户新增成功')
     } else {
       ElMessage.error(res.data?.message || '客户新增失败')
@@ -503,7 +494,7 @@ const handleQuickCreateCustomer = async () => {
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || error?.message || '客户新增失败')
   } finally {
-    quickCreateCustomerLoading.value = false
+    quickCreateCustomerState.loading.value = false
   }
 }
 
@@ -518,7 +509,7 @@ const handleQuickCreateProduct = async () => {
   }
 
   try {
-    quickCreateProductLoading.value = true
+    quickCreateProductState.loading.value = true
     const res = await addProduct({
       productCode: quickCreateProductForm.value.productCode,
       productName: quickCreateProductForm.value.productName,
@@ -535,7 +526,7 @@ const handleQuickCreateProduct = async () => {
       )
       if (!created) {
         ElMessage.error('商品新增成功，但未能自动回填，请手动选择商品')
-        quickCreateProductVisible.value = false
+        quickCreateProductState.close()
         return
       }
       if (quickCreateProductRow.value) {
@@ -546,8 +537,7 @@ const handleQuickCreateProduct = async () => {
         quickCreateProductRow.value.matchStatus = 'manual_created'
         markAiDraftDirty()
       }
-      quickCreateProductVisible.value = false
-      quickCreateProductRow.value = null
+      quickCreateProductState.close()
       ElMessage.success('商品新增成功')
     } else {
       ElMessage.error(res.data?.message || '商品新增失败')
@@ -555,7 +545,7 @@ const handleQuickCreateProduct = async () => {
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || error?.message || '商品新增失败')
   } finally {
-    quickCreateProductLoading.value = false
+    quickCreateProductState.loading.value = false
   }
 }
 
@@ -575,9 +565,7 @@ const beforeAiUpload = (file) => {
 
 const handleAiFileChange = (file) => {
   if (!file || !file.raw) {
-    aiUploadFile.value = null
-    aiDraft.value = null
-    aiManualReviewed.value = false
+    resetAiDraftState()
     return
   }
   aiUploadFile.value = file.raw
@@ -586,28 +574,7 @@ const handleAiFileChange = (file) => {
 }
 
 const handleAiFileRemove = () => {
-  aiUploadFile.value = null
-  aiDraft.value = null
-  aiManualReviewed.value = false
-}
-
-const hasUnmatchedAiItems = () => (aiDraft.value?.itemList || []).some(item => !item.matchedProductId)
-
-const hasInvalidAiItems = () => {
-  return (aiDraft.value?.itemList || []).some(item => {
-    const lineNo = Number(item.lineNo)
-    const quantity = Number(item.quantity)
-    const unitPrice = Number(item.unitPrice)
-    const amount = Number(item.amount)
-    return !Number.isFinite(lineNo) ||
-      lineNo <= 0 ||
-      !Number.isFinite(quantity) ||
-      quantity <= 0 ||
-      !Number.isFinite(unitPrice) ||
-      unitPrice < 0 ||
-      !Number.isFinite(amount) ||
-      amount < 0
-  })
+  resetAiDraftState()
 }
 
 const handleAiRecognize = async () => {
@@ -626,7 +593,7 @@ const handleAiRecognize = async () => {
     formData.append('file', aiUploadFile.value)
     const res = await recognizeOutbound(formData)
     if (res.data?.code === 1) {
-      aiDraft.value = normalizeOutboundAiDraft(res.data?.data)
+      aiDraft.value = normalizeAiDraft(res.data?.data)
       aiManualReviewed.value = false
       ElMessage.success('AI识别成功')
     } else {
@@ -666,30 +633,11 @@ const handleAiConfirm = async () => {
 
   try {
     aiConfirming.value = true
-    const res = await confirmOutbound({
-      recordId: aiDraft.value.recordId,
-      customerId: Number(aiDraft.value.matchedCustomerId),
-      customerName: aiDraft.value.customerName || '',
-      rawText: aiDraft.value.rawText || '',
-      remark: aiDraft.value.remark || 'AI识别确认生成出库单',
-      itemList: (aiDraft.value.itemList || []).map(item => ({
-        lineNo: Number(item.lineNo),
-        productName: item.productName || '',
-        specification: item.specification || '',
-        unit: item.unit || '',
-        matchedProductId: Number(item.matchedProductId),
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-        amount: Number(item.amount),
-        remark: item.remark || ''
-      }))
-    })
+    const res = await confirmOutbound(buildAiConfirmPayload())
 
     if (res.data?.code === 1) {
       aiDialogVisible.value = false
-      aiDraft.value = null
-      aiUploadFile.value = null
-      aiManualReviewed.value = false
+      resetAiDraftState()
       const orderId = res.data?.data
       ElMessage.success(`AI确认成功，已生成出库单，ID=${orderId}`)
       await router.push(`/outbound/detail/${orderId}`)
@@ -729,7 +677,7 @@ const loadAiDraftFromRecord = async (recordIdValue) => {
       await clearAiRecordQuery()
       return
     }
-    aiDraft.value = normalizeOutboundAiDraft(res.data.data)
+    aiDraft.value = normalizeAiDraft(res.data.data)
     aiManualReviewed.value = false
     aiDialogVisible.value = true
     if (aiDraft.value?.confirmedOrderId) {

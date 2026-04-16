@@ -30,7 +30,13 @@ public interface AiRecognitionRecordMapper {
                                @Param("confirmedOrderId") Long confirmedOrderId,
                                @Param("recognitionStatus") String recognitionStatus);
 
-    List<AiRecognitionRecordVO> selectInboundRecordList();
+    Long countInboundRecords();
 
-    List<AiRecognitionRecordVO> selectOutboundRecordList();
+    List<AiRecognitionRecordVO> selectInboundRecordPage(@Param("offset") Integer offset,
+                                                        @Param("pageSize") Integer pageSize);
+
+    Long countOutboundRecords();
+
+    List<AiRecognitionRecordVO> selectOutboundRecordPage(@Param("offset") Integer offset,
+                                                         @Param("pageSize") Integer pageSize);
 }

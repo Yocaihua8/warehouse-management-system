@@ -69,6 +69,29 @@ chore: 升级 springdoc-openapi 至 2.8.6
 2. README 已更新
 3. 无遗留的调试代码或 TODO
 
+### GitHub Required Checks（建议开启）
+
+仓库已提供 GitHub Actions 工作流：`backend-test`、`frontend-test`。  
+如果希望“测试失败的 PR 不能合并”，还需要在 GitHub 仓库中额外配置分支保护规则。
+
+**建议配置步骤：**
+
+1. 打开仓库 `Settings`
+2. 进入 `Branches` 或 `Rulesets`
+3. 为 `main`（必要时也包括 `dev`）创建保护规则
+4. 开启 `Require a pull request before merging`
+5. 开启 `Require status checks to pass before merging`
+6. 勾选以下检查项：
+   - `backend-test`
+   - `frontend-test`
+7. 建议同时开启 `Require branches to be up to date before merging`
+
+**说明：**
+
+- `.github/workflows/ci.yml` 只能负责“自动执行测试”
+- 只有在仓库里把 CI job 配成 required checks 后，GitHub 才会真正阻止失败测试的合并
+- 如果后续新增 CI job（如 `coverage`、`e2e-test`），也要同步更新 required checks 列表
+
 ---
 
 ## 4. 版本标签

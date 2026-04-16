@@ -4,7 +4,9 @@ import { parsePageData } from '../utils/orderHelper'
 export function useProductSearch(options) {
     const {
         fetchProductList,
-        onError
+        onError,
+        defaultPageNum = 1,
+        defaultPageSize = 200
     } = options || {}
 
     const productOptions = ref([])
@@ -26,8 +28,8 @@ export function useProductSearch(options) {
             productLoading.value = true
             const res = await fetchProductList({
                 productName: productName || undefined,
-                pageNum: 1,
-                pageSize: 200
+                pageNum: defaultPageNum,
+                pageSize: defaultPageSize
             })
 
             if (res.data?.code === 1) {
@@ -47,6 +49,35 @@ export function useProductSearch(options) {
 
     const loadProducts = async () => {
         await loadProductsByName('')
+    }
+
+    const loadProductsByQuery = async (query = {}) => {
+        if (typeof fetchProductList !== 'function') {
+            productOptions.value = []
+            return
+        }
+
+        try {
+            productLoading.value = true
+            const res = await fetchProductList({
+                pageNum: query.pageNum ?? defaultPageNum,
+                pageSize: query.pageSize ?? defaultPageSize,
+                productName: (query.productName || '').trim() || undefined
+            })
+
+            if (res.data?.code === 1) {
+                const pageData = parsePageData(res.data?.data)
+                productOptions.value = pageData.list
+            } else {
+                productOptions.value = []
+                notifyError(res.data?.message || '加载商品列表失败')
+            }
+        } catch (error) {
+            productOptions.value = []
+            notifyError(error?.response?.data?.message || error?.message || '加载商品列表失败', error)
+        } finally {
+            productLoading.value = false
+        }
     }
 
     const handleProductSearch = (keyword) => {
@@ -86,6 +117,7 @@ export function useProductSearch(options) {
         productLoading,
         loadProducts,
         loadProductsByName,
+        loadProductsByQuery,
         handleProductSearch,
         upsertProductOption,
         handleProductChange

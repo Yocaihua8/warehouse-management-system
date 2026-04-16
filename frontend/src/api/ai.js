@@ -34,10 +34,11 @@ export const confirmOutbound = (data) => {
     })
 }
 
-export const getAiInboundRecordList = () => {
+export const getAiInboundRecordList = (params) => {
     return request({
         url: '/ai/inbound/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 
@@ -48,10 +49,11 @@ export const getAiInboundRecordDetail = (id) => {
     })
 }
 
-export const getAiOutboundRecordList = () => {
+export const getAiOutboundRecordList = (params) => {
     return request({
         url: '/ai/outbound/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 

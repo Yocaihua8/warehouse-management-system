@@ -15,3 +15,25 @@ export const addSupplier = (data) => {
         data
     })
 }
+
+export const getSupplierDetail = (id) => {
+    return request({
+        url: `/supplier/${id}`,
+        method: 'get'
+    })
+}
+
+export const updateSupplier = (data) => {
+    return request({
+        url: '/supplier/update',
+        method: 'put',
+        data
+    })
+}
+
+export const deleteSupplier = (id) => {
+    return request({
+        url: `/supplier/delete/${id}`,
+        method: 'delete'
+    })
+}

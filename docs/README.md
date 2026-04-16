@@ -1,8 +1,7 @@
-# WMS 仓库管理系统 — 工程文档体系
+# ERP + WMS 一体化系统 — 工程文档体系
 
 > **文档约定**：本目录下所有文档描述**当前已实现**的系统现状，不包含规划性内容。  
-> 规划中的功能和已知问题统一记录在 [BACKLOG.md](./BACKLOG.md)。  
-> 历史规划内容已收口到对应活文档的“历史演进摘要”小节，不再维护独立历史文档入口。
+> 规划中的功能和已知问题统一记录在 [BACKLOG.md](./BACKLOG.md)。
 
 ---
 
@@ -13,7 +12,7 @@
 1. [架构设计说明](./架构设计说明.md) — 系统全貌、技术栈、模块关系
 2. [数据库设计](./database.md) — 12 张表结构、枚举值定义
 3. [本地环境搭建](./guides/setup.md) — 从零启动系统的完整步骤
-4. [系统现状与风险清单](./系统现状与风险清单.md) — 当前运行边界、阻塞项、高风险项与待验证项
+4. [系统现状与风险清单](./系统现状与风险清单.md) — 当前运行边界、已收敛问题、高风险项
 
 ### 我要开发某个功能模块
 
@@ -30,7 +29,7 @@
 
 ### 我要准备项目演示或求职材料
 
-→ 当前仓库未包含独立 `showcase/` 目录，请以 [README](../README.md)、[架构设计说明](./架构设计说明.md) 和各模块功能规格文档为准，自行整理演示材料。
+→ 以 [README](../README.md)、[架构设计说明](./架构设计说明.md) 和各模块功能规格文档为准，自行整理演示材料。
 
 ---
 
@@ -42,7 +41,7 @@
 |------|------|---------|
 | [架构设计说明](./架构设计说明.md) | 系统定位、模块总览、技术栈、分层职责、关键设计决策 | 所有开发者 |
 | [数据库设计](./database.md) | 12 张表结构、字段说明、枚举值、关系图 | 后端开发者 |
-| [系统现状与风险清单](./系统现状与风险清单.md) | 当前运行前提、已确认阻塞项、高风险点、待验证项 | 联调 / 排障 / 接手开发者 |
+| [系统现状与风险清单](./系统现状与风险清单.md) | 当前运行前提、已收敛问题、高风险点、待验证项 | 联调 / 排障 / 接手开发者 |
 
 ### 功能规格（Feature Specifications）
 
@@ -58,12 +57,28 @@
 | [features/inventory.md](./features/inventory.md) | StockFlowService 统一入口、库存变更场景、流水审计不可篡改 |
 | [features/ai-recognition.md](./features/ai-recognition.md) | AI 识别状态机、OCR 流程、商品匹配逻辑、确认规则 |
 | [features/desktop-client.md](./features/desktop-client.md) | 桌面端启动流程、已实现功能、目录结构、依赖接口 |
+| [features/frontend-order-pages.md](./features/frontend-order-pages.md) | 单据页前端架构：composables 层、组件接口、ERP 扩展路线 |
+
+### 架构决策记录（ADR）
+
+> 记录重大架构决策的背景、决策内容、权衡与备选方案。
+
+| 文档 | 说明 |
+|------|------|
+| [adr/README.md](./adr/README.md) | ADR 索引与模板 |
+| [ADR-001](./adr/ADR-001-mybatis-over-jpa.md) | 使用 MyBatis 而非 JPA/Hibernate |
+| [ADR-002](./adr/ADR-002-uuid-token-sessions.md) | 使用 UUID Token + 数据库会话而非 JWT |
+| [ADR-003](./adr/ADR-003-python-ocr-service.md) | OCR 识别作为独立 Python 服务 |
+| [ADR-004](./adr/ADR-004-stock-flow-single-entry.md) | StockFlowService 作为库存变更唯一入口 |
+| [ADR-005](./adr/ADR-005-snapshot-pattern.md) | 订单明细使用数据快照模式 |
+| [ADR-006](./adr/ADR-006-ai-draft-not-direct-order.md) | AI 识别结果不直接生成正式单据 |
 
 ### 开发指南
 
 | 文档 | 说明 |
 |------|------|
 | [guides/setup.md](./guides/setup.md) | 本地环境搭建：数据库初始化、后端/前端/AI/桌面端启动 |
+| [guides/testing.md](./guides/testing.md) | 测试策略：单元测试、API 测试、回归清单 |
 | [guides/branch-conventions.md](./guides/branch-conventions.md) | 分支命名、提交信息格式、合并原则、版本标签 |
 | [guides/codex-guide.md](./guides/codex-guide.md) | AI 辅助开发工具的行为约定 |
 
@@ -71,8 +86,12 @@
 
 | 文档 | 说明 |
 |------|------|
-| [项目路线图](./项目路线图.md) | 已完成功能清单、版本节点、下一步计划 |
-| [BACKLOG](./BACKLOG.md) | P0-P3 待办事项、已知 Bug、优先级排序 |
+| [项目路线图](./项目路线图.md) | 系统定位演进、已完成功能清单、版本节点 |
+| [BACKLOG](./BACKLOG.md) | P0-P3 待办、技术债务、验收标准、规模估算 |
+| [../CHANGELOG.md](../CHANGELOG.md) | 版本变更记录（Keep a Changelog 格式） |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | 贡献指南：代码规范、测试要求、PR 流程 |
+
+---
 
 ## 项目模块目录
 
@@ -102,6 +121,3 @@
 | **代码为准** | 文档与代码不一致时以代码为准，并及时更新文档 |
 | **功能修改同步更新** | 修改业务逻辑后必须同步更新对应的 `features/*.md` |
 | **权限变更同步更新** | 新增 Admin-only 接口时必须同步更新 `features/auth.md` 接口清单 |
-| **历史内容收口** | 旧规划信息按模块并入活文档的“历史演进摘要”，避免双轨维护 |
-
----
