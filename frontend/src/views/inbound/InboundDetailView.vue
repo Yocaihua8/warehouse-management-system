@@ -84,7 +84,19 @@
           </template>
         </el-descriptions>
 
-        <OrderDetailItemTable title="入库明细" :item-list="detail.itemList || []" />
+        <OrderItemTable
+          title="入库明细"
+          :item-list="detail.itemList || []"
+          :calc-amount="calcAmount"
+          :editable="false"
+          :show-add-button="false"
+          :show-index-column="false"
+          :show-product-select-column="false"
+          :show-action-column="false"
+          :show-summary="false"
+          :show-stock-column="false"
+          stripe
+        />
         <OrderSummary :item-list="detail.itemList || []" />
 
         <div class="form-actions">
@@ -101,13 +113,15 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { confirmInboundOrder, getInboundOrderDetail, voidInboundOrder } from '../../api/inbound'
 import { getRole } from '../../utils/auth'
-import OrderDetailItemTable from '../../components/order/OrderDetailItemTable.vue'
+import OrderItemTable from '../../components/order/OrderItemTable.vue'
 import OrderSummary from '../../components/order/OrderSummary.vue'
+import { useOrderCalc } from '../../composables/useOrderCalc'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const isAdmin = computed(() => getRole() === 'ADMIN')
+const { calcAmount } = useOrderCalc()
 
 const detail = reactive({
   orderNo: '',

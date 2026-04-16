@@ -1,95 +1,173 @@
 <template>
-  <div class="table-toolbar">
+  <div v-if="showToolbar" class="table-toolbar">
     <span class="section-title">{{ title }}</span>
-    <el-button type="primary" :disabled="!editable" @click="emitRowAdd">新增明细</el-button>
+    <el-button v-if="showAddButton" type="primary" :disabled="!editable" @click="emitRowAdd">新增明细</el-button>
   </div>
 
   <el-table
     :data="resolvedItems"
     border
+    :stripe="stripe"
     style="width: 100%"
-    show-summary
+    :show-summary="showSummary"
     :summary-method="buildSummaryRow"
+    :row-class-name="resolveRowClassName"
   >
-    <el-table-column label="#" width="60" align="center">
+    <el-table-column v-if="showIndexColumn" label="#" width="60" align="center">
       <template #default="{ $index }">
         {{ $index + 1 }}
       </template>
     </el-table-column>
 
-    <el-table-column label="商品选择" min-width="260">
-      <template #default="{ row }">
-        <el-select
-          v-model="row.productId"
-          placeholder="请选择商品"
-          filterable
-          remote
-          reserve-keyword
-          clearable
-          :loading="productLoading"
-          :disabled="!editable"
-          style="width: 100%"
-          :remote-method="emitProductSearch"
-          @change="(value) => handleProductChange(row, value, $index)"
+    <el-table-column v-if="showProductSelectColumn" label="商品选择" min-width="260">
+      <template #default="{ row, $index }">
+        <div
+          v-if="editable"
+          :ref="setCellRef($index, 'productSelect')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'productSelect')"
+          @keydown.enter.prevent="emitOpenProductDialog($index)"
         >
-          <el-option
-            v-for="item in productOptions"
-            :key="item.id"
-            :label="`${item.productCode || '-'} / ${item.productName || '-'}${item.specification ? ' / ' + item.specification : ''}`"
-            :value="item.id"
+          <OrderProductSelectCell
+            :row="row"
+            :editable="true"
+            :product-loading="productLoading"
+            :selected-text="formatSelectedProduct(row)"
+            @open="emitOpenProductDialog($index)"
+            @clear="clearProduct(row, $index)"
           />
-        </el-select>
+        </div>
+        <OrderProductSelectCell
+          v-else
+          :row="row"
+          :editable="false"
+          :selected-text="formatSelectedProduct(row)"
+        />
       </template>
     </el-table-column>
 
     <el-table-column label="商品编码" min-width="140">
-      <template #default="{ row }">
-        {{ displayText(row.productCode) }}
+      <template #default="{ row, $index }">
+        <div
+          v-if="editable"
+          :ref="setCellRef($index, 'productCode')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'productCode')"
+        >
+          <el-input
+            v-model="row.productCode"
+            placeholder="商品编码"
+            @input="(value) => handleRowFieldChange($index, 'productCode', value)"
+          />
+        </div>
+        <span v-else>{{ displayText(row.productCode) }}</span>
       </template>
     </el-table-column>
 
     <el-table-column label="商品名称" min-width="180">
-      <template #default="{ row }">
-        {{ displayText(row.productName) }}
+      <template #default="{ row, $index }">
+        <div
+          v-if="editable"
+          :ref="setCellRef($index, 'productName')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'productName')"
+        >
+          <el-input
+            v-model="row.productName"
+            placeholder="商品名称"
+            @input="(value) => handleRowFieldChange($index, 'productName', value)"
+          />
+        </div>
+        <span v-else>{{ displayText(row.productName) }}</span>
       </template>
     </el-table-column>
 
     <el-table-column label="规格" min-width="140">
-      <template #default="{ row }">
-        {{ displayText(row.specification) }}
+      <template #default="{ row, $index }">
+        <div
+          v-if="editable"
+          :ref="setCellRef($index, 'specification')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'specification')"
+        >
+          <el-input
+            v-model="row.specification"
+            placeholder="规格"
+            @input="(value) => handleRowFieldChange($index, 'specification', value)"
+          />
+        </div>
+        <span v-else>{{ displayText(row.specification) }}</span>
       </template>
     </el-table-column>
 
     <el-table-column label="单位" width="90" align="center">
-      <template #default="{ row }">
-        {{ displayText(row.unit) }}
+      <template #default="{ row, $index }">
+        <div
+          v-if="editable"
+          :ref="setCellRef($index, 'unit')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'unit')"
+        >
+          <el-input
+            v-model="row.unit"
+            placeholder="单位"
+            @input="(value) => handleRowFieldChange($index, 'unit', value)"
+          />
+        </div>
+        <span v-else>{{ displayText(row.unit) }}</span>
       </template>
     </el-table-column>
 
     <el-table-column label="数量" width="140">
-      <template #default="{ row }">
-        <el-input-number
-          v-model="row.quantity"
-          :min="1"
-          controls-position="right"
-          :disabled="!editable"
-          style="width: 100%"
-          @change="(value) => handleRowFieldChange($index, 'quantity', value)"
-        />
+      <template #default="{ row, $index }">
+        <div
+          :ref="setCellRef($index, 'quantity')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'quantity')"
+        >
+          <el-input-number
+            v-model="row.quantity"
+            :min="1"
+            controls-position="right"
+            :disabled="!editable"
+            style="width: 100%"
+            @change="(value) => handleRowFieldChange($index, 'quantity', value)"
+          />
+        </div>
       </template>
     </el-table-column>
 
     <el-table-column label="单价" width="160">
-      <template #default="{ row }">
-        <el-input-number
-          v-model="row.unitPrice"
-          :min="0"
-          :precision="2"
-          controls-position="right"
-          :disabled="!editable"
-          style="width: 100%"
-          @change="(value) => handleRowFieldChange($index, 'unitPrice', value)"
-        />
+      <template #default="{ row, $index }">
+        <div
+          :ref="setCellRef($index, 'unitPrice')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'unitPrice')"
+        >
+          <el-input-number
+            v-model="row.unitPrice"
+            :min="0"
+            :precision="2"
+            controls-position="right"
+            :disabled="!editable"
+            style="width: 100%"
+            @change="(value) => handleRowFieldChange($index, 'unitPrice', value)"
+          />
+        </div>
       </template>
     </el-table-column>
 
@@ -99,7 +177,7 @@
       </template>
     </el-table-column>
 
-    <el-table-column v-if="orderType === 'outbound'" label="库存余量" width="120">
+    <el-table-column v-if="orderType === 'outbound' && showStockColumn" label="库存余量" width="120">
       <template #default="{ row }">
         {{ displayText(row.availableStock) }}
       </template>
@@ -107,11 +185,19 @@
 
     <el-table-column label="备注" min-width="160">
       <template #default="{ row, $index }">
-        <el-input v-model="row.remark" :disabled="!editable" placeholder="请输入备注" @input="(value) => handleRowFieldChange($index, 'remark', value)" />
+        <div
+          :ref="setCellRef($index, 'remark')"
+          class="cell-focus-wrapper"
+          @focusin.capture="setActiveRow($index)"
+          @click.capture="setActiveRow($index)"
+          @keydown.capture="handleCellKeydown($event, $index, 'remark')"
+        >
+          <el-input v-model="row.remark" :disabled="!editable" placeholder="请输入备注" @input="(value) => handleRowFieldChange($index, 'remark', value)" />
+        </div>
       </template>
     </el-table-column>
 
-    <el-table-column label="操作" width="100" fixed="right">
+    <el-table-column v-if="showActionColumn" label="操作" width="100" fixed="right">
       <template #default="{ $index }">
         <el-button
           type="danger"
@@ -136,7 +222,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useOrderItemTableFocus } from '../../composables/useOrderItemTableFocus'
 import { displayText } from '../../utils/orderHelper'
+import OrderProductSelectCell from './OrderProductSelectCell.vue'
 
 const props = defineProps({
   title: {
@@ -156,6 +244,38 @@ const props = defineProps({
     default: () => []
   },
   productLoading: {
+    type: Boolean,
+    default: false
+  },
+  showToolbar: {
+    type: Boolean,
+    default: true
+  },
+  showAddButton: {
+    type: Boolean,
+    default: true
+  },
+  showIndexColumn: {
+    type: Boolean,
+    default: true
+  },
+  showProductSelectColumn: {
+    type: Boolean,
+    default: true
+  },
+  showActionColumn: {
+    type: Boolean,
+    default: true
+  },
+  showSummary: {
+    type: Boolean,
+    default: true
+  },
+  showStockColumn: {
+    type: Boolean,
+    default: true
+  },
+  stripe: {
     type: Boolean,
     default: false
   },
@@ -181,7 +301,7 @@ const emit = defineEmits([
   'insert-item',
   'remove-item',
   'row-field-change',
-  'product-search',
+  'open-product-dialog',
   'product-change',
   'product-selected'
 ])
@@ -237,8 +357,8 @@ const emitRowDelete = (index) => {
   emit('remove-item', index)
 }
 
-const emitProductSearch = (keyword) => {
-  emit('product-search', keyword)
+const emitOpenProductDialog = (index) => {
+  emit('open-product-dialog', index)
 }
 
 const handleProductChange = (row, productId, index) => {
@@ -246,9 +366,39 @@ const handleProductChange = (row, productId, index) => {
   emit('product-change', { row, productId, index })
 }
 
+const clearProduct = (row, index) => {
+  handleProductChange(row, null, index)
+}
+
+const formatSelectedProduct = (row) => {
+  if (!row?.productId && !row?.productCode && !row?.productName) {
+    return '未选择商品'
+  }
+  const code = row?.productCode || '-'
+  const name = row?.productName || '-'
+  const specification = row?.specification ? ` / ${row.specification}` : ''
+  return `${code} / ${name}${specification}`
+}
+
 const handleRowFieldChange = (index, field, value) => {
   emit('row-field-change', { index, field, value })
 }
+
+const {
+  setCellRef,
+  setActiveRow,
+  resolveRowClassName,
+  focusFirstEditableCell,
+  handleCellKeydown
+} = useOrderItemTableFocus({
+  editable: computed(() => props.editable),
+  resolvedItems,
+  onAppendRow: emitRowAdd
+})
+
+defineExpose({
+  focusFirstEditableCell
+})
 </script>
 
 <style scoped>
@@ -262,5 +412,17 @@ const handleRowFieldChange = (index, field, value) => {
 .section-title {
   font-size: 16px;
   font-weight: 600;
+}
+
+.cell-focus-wrapper {
+  width: 100%;
+}
+
+:deep(.el-table .is-active-row > td.el-table__cell) {
+  background-color: var(--el-color-primary-light-9);
+}
+
+:deep(.el-table .is-active-row:hover > td.el-table__cell) {
+  background-color: var(--el-color-primary-light-8);
 }
 </style>
