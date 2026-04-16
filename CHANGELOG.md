@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- 补充 GitHub 协作文档：新建仓库时，需先让 `backend-test`、`frontend-test` 成功运行一次，Ruleset 才能选择 required checks
+
 ### 计划中
 - 单据工作台第二批：收敛 `useOrderWorkbenchPage` 公共 composable，接入 `ProductSelectDialog`
 - Tab 键行间跳转与预置空行键盘录入流
