@@ -182,6 +182,7 @@ cd backend && mvn compile -DskipTests
 
 PR 提交后，这两个 job 会自动执行。  
 如果希望测试失败时禁止合并，还需要由仓库维护者在 GitHub `Settings > Branches / Rulesets` 中，将这两个 job 配置为 **required checks**。
+对于新建仓库，GitHub 只有在这两个 job 至少成功运行过一次后，才会在 Ruleset 的检查项列表中显示它们。
 
 ### PR 描述模板
 
