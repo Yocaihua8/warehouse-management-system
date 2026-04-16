@@ -3,7 +3,7 @@ server:
 
 app:
   display-name: 仓库管理系统
-  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+  version: ${APP_VERSION:1.7.0-SNAPSHOT}
   cors:
     allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
 

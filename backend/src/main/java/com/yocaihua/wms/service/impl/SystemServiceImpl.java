@@ -26,7 +26,7 @@ public class SystemServiceImpl implements SystemService {
     @Value("${app.display-name:仓库管理系统}")
     private String appDisplayName;
 
-    @Value("${app.version:0.0.1-SNAPSHOT}")
+    @Value("${app.version:1.7.0-SNAPSHOT}")
     private String appVersion;
 
     @Value("${auth.session-timeout-minutes:10080}")
