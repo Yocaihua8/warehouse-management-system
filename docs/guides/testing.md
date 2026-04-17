@@ -170,7 +170,7 @@ mvn verify
 1. `backend/pom.xml` 已增加 `jacoco:check`
 2. `.github/workflows/ci.yml` 的后端 job 已切换到 `./mvnw verify`
 3. Linux runner 已补 `chmod +x ./mvnw`
-4. GitHub 仓库侧仍需把 `backend-test` 配成 required check，才能真正阻止失败覆盖率合并
+4. 当前仓库已完成 `protect-main` 规则配置，`backend-test` / `frontend-test` 已设为 required checks；如果后续重建仓库，需先让两项 job 成功运行一次，再重新绑定检查项
 
 ---
 
@@ -270,7 +270,7 @@ curl -X POST http://127.0.0.1:9000/ocr/inbound/recognize \
 
 | 事项 | 优先级 | 说明 |
 |------|:------:|------|
-| GitHub Actions Required Checks | 高 | 仓库 `Settings > Branches / Rulesets` 需手动配置 `backend-test` 为 required check，才能真正阻止 `mvnw verify` 覆盖率门槛失败的 PR 合并 |
+| GitHub Actions Required Checks 巡检 | 低 | 当前仓库已配置 `protect-main`；若后续重建仓库或迁移仓库，需重新确认 `backend-test` / `frontend-test` 仍为 required checks |
 | 后端更高覆盖率门槛评估 | 低 | 当前 `service.impl` 已启用包级 `LINE >= 80%`；待低覆盖服务补测后，再评估是否提高到 `85%`，或追加 `BRANCH` 门槛 |
 | 前端页面级联动测试 | 中 | 在已有 composable + 组件测试的基础上，补创建页保存链（`saveDraft` + 路由跳转）和弹窗联动的自动化验证 |
 | 集成测试（Testcontainers） | 低 | 使用 Testcontainers 启动真实 MySQL，测试 Flyway + Mapper 层 |
