@@ -108,7 +108,9 @@ cd desktop-client && mvn javafx:run
 | 文档 | 说明 |
 |------|------|
 | [docs/README.md](./docs/README.md) | 文档导航总入口 |
+| [docs/design/system-design-overview.md](./docs/design/system-design-overview.md) | 规范目录下的系统设计总览入口 |
 | [docs/架构设计说明.md](./docs/架构设计说明.md) | 系统架构、技术栈、关键设计决策 |
+| [docs/design/database-design.md](./docs/design/database-design.md) | 规范目录下的数据库设计摘要入口 |
 | [docs/adr/](./docs/adr/README.md) | 架构决策记录（ADR） |
 | [docs/features/](./docs/features/README.md) | 各业务模块功能规格 |
 | [docs/guides/setup.md](./docs/guides/setup.md) | 本地开发环境搭建 |
