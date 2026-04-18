@@ -58,12 +58,10 @@
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="自定义字段" prop="customFieldsJson">
-              <el-input
-                  v-model="form.customFieldsJson"
-                  type="textarea"
-                  :rows="4"
-                  placeholder='请输入JSON对象，如 {"brand":"A牌","origin":"温州"}'
+            <el-form-item label="自定义字段" prop="customFields">
+              <ProductCustomFieldsEditor
+                v-model="form.customFields"
+                @update:model-value="handleCustomFieldsChange"
               />
             </el-form-item>
           </el-col>
@@ -102,7 +100,13 @@
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import ProductCustomFieldsEditor from '../../components/product/ProductCustomFieldsEditor.vue'
 import { addProduct } from '../../api/product'
+import {
+  createEmptyCustomField,
+  serializeCustomFieldRows,
+  validateCustomFieldRows
+} from '../../utils/productCustomFields'
 
 const router = useRouter()
 const formRef = ref()
@@ -114,31 +118,18 @@ const form = reactive({
   unit: '',
   category: '',
   salePrice: 0,
-  customFieldsJson: '',
+  customFields: [createEmptyCustomField()],
   remark: '',
   status: 1
 })
 
-const validateCustomFieldsJson = (_rule, value, callback) => {
-  const text = (value || '').trim()
-  if (!text) {
-    callback()
+const validateCustomFields = (_rule, _value, callback) => {
+  const errorMessage = validateCustomFieldRows(form.customFields)
+  if (errorMessage) {
+    callback(new Error(errorMessage))
     return
   }
-  if (text.length > 4000) {
-    callback(new Error('自定义字段长度不能超过4000个字符'))
-    return
-  }
-  try {
-    const parsed = JSON.parse(text)
-    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-      callback(new Error('自定义字段必须是JSON对象'))
-      return
-    }
-    callback()
-  } catch (e) {
-    callback(new Error('自定义字段不是合法JSON'))
-  }
+  callback()
 }
 
 const rules = {
@@ -148,8 +139,13 @@ const rules = {
   unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
   category: [{ required: true, message: '请输入分类', trigger: 'blur' }],
   salePrice: [{ required: true, message: '请输入销售价', trigger: 'change' }],
-  customFieldsJson: [{ validator: validateCustomFieldsJson, trigger: 'blur' }],
+  customFields: [{ validator: validateCustomFields, trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
+}
+
+const handleCustomFieldsChange = (value) => {
+  form.customFields = value
+  formRef.value?.validateField('customFields').catch(() => {})
 }
 
 const handleBack = () => {
@@ -163,6 +159,7 @@ const handleSubmit = async () => {
     if (!valid) return
 
     try {
+      const customFieldsJson = serializeCustomFieldRows(form.customFields)
       const res = await addProduct({
         productCode: form.productCode,
         productName: form.productName,
@@ -170,7 +167,7 @@ const handleSubmit = async () => {
         unit: form.unit,
         category: form.category,
         salePrice: form.salePrice,
-        customFieldsJson: form.customFieldsJson,
+        customFieldsJson,
         remark: form.remark,
         status: form.status
       })

@@ -200,6 +200,8 @@ npm test
 | `OrderItemTable`：工具条按钮、商品选择/清空事件、出库库存列与合计行、只读展示 | 高 |
 | `ProductSelectDialog`：搜索输入、快速新建、当前已选商品标签、确认/取消交互 | 高 |
 | `MainLayout`：侧边栏折叠按钮、220px/64px 宽度切换、`localStorage` 持久化与折叠菜单标题提示 | 高 |
+| `productCustomFields`：自定义字段 JSON 解析、摘要生成、空字段名 / 重复字段名校验与序列化 | 中 |
+| `ProductCustomFieldsEditor`：新增字段、修改键值、删除字段行与 `v-model` 同步 | 中 |
 | `InboundOrderCreate`：保存草稿、保存并新建、智能识别导入按钮与页面 composable 联动 | 高 |
 | `OutboundOrderCreate`：保存草稿、保存并新建、智能识别导入按钮与页面 composable 联动 | 高 |
 
@@ -215,6 +217,8 @@ npm test
 | `frontend/src/components/order/__tests__/OrderItemTable.spec.js` | 明细表工具条、商品列事件、出库库存列与只读渲染 |
 | `frontend/src/components/order-workbench/__tests__/ProductSelectDialog.spec.js` | 商品弹窗搜索、快速新建、当前选中商品确认与取消 |
 | `frontend/src/layouts/__tests__/MainLayout.spec.js` | 侧边栏折叠按钮、状态持久化与折叠态标题提示 |
+| `frontend/src/utils/__tests__/productCustomFields.spec.js` | 自定义字段解析、序列化、摘要与校验 |
+| `frontend/src/components/product/__tests__/ProductCustomFieldsEditor.spec.js` | 键值编辑器新增 / 删除字段行与双向绑定 |
 | `frontend/src/views/inbound/__tests__/InboundOrderCreate.spec.js` | 入库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
 | `frontend/src/views/outbound/__tests__/OutboundOrderCreate.spec.js` | 出库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
 
