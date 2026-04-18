@@ -28,7 +28,6 @@
 | # | 描述 | 验收标准 | 规模 | 里程碑 |
 |---|------|---------|:----:|--------|
 | 10 | **商品自定义字段 UI 改造**：当前 `customFieldsJson` 在前端以原始 JSON textarea 录入，普通用户不可用；改为动态键值对编辑器（"+ 新增字段"按钮，每行一个 key-value 输入对），自动序列化为 JSON 写入后端，无需用户手写 JSON | ① 商品新增/编辑页"自定义字段"区域显示键值对编辑器；② 可增删行；③ 保存时自动序列化为合法 JSON；④ 详情页反序列化展示为键值列表 | S | v1.9 |
-| 9 | **前端页面级联动测试**：composable 与关键组件测试已就绪；下一步补创建页保存链（`saveDraft` 调用 + 路由跳转模拟）和弹窗联动（AI 识别弹窗 confirm 写回 form）的自动化验证 | 补测 `InboundOrderCreate` / `OutboundOrderCreate` 保存链路至少一条 happy path + 一条 error path | M | v1.9 |
 | 6 | **`OrderItemTable` 瘦身（按需求驱动再评估）**：当前轮次已收口在”焦点/键盘流 composable 抽离 + 商品选择列子组件拆分”；商品编码/名称/规格/单位与数量/单价列暂不继续抽象，避免为简单模板引入过度参数化，以及触发 `el-input-number` 焦点复杂度回升 | 仅在新增交互或列级需求出现时，再评估是否继续拆分剩余列 | — | 按需 |
 
 ---
@@ -52,7 +51,7 @@
 | # | 描述 | 影响 | 规模 |
 |---|------|------|:----:|
 | T1 | 配置来源不够收口：`application.yaml` / `application-local.yml` / `docker-compose.yml` 三套来源并存，本地手工启动与 Compose 启动默认值不同（会话存储、数据库密码）；新人上手需额外对照 | 新人上手困难，本地与 Docker 行为差异 | S |
-| T3 | 前端页面级联动与 E2E 仍缺自动化保障：composable 与关键组件测试已覆盖；下一步补创建页保存链（`saveDraft` + 路由跳转）和弹窗联动，已纳入 P2 #9 | 前端回归覆盖面仍不完整 | S |
+| T3 | 前端 E2E / 浏览器级联调仍缺自动化保障：composable、关键组件与创建页保存链 happy/error path 已覆盖；当前主要空白已收敛为浏览器级保存链、AI 识别弹窗确认成单链与跨页面回归 | 前端回归覆盖面仍不完整 | S |
 | T4 | Web 与桌面端能力仍有差异，桌面端供应商管理缺编辑/删除 | 功能覆盖不一致 | M |
 
 ---
@@ -165,3 +164,4 @@
 | D77 | 左侧导航栏折叠/展开落地：`MainLayout` 支持 220px/64px 侧栏切换、Header 折叠按钮、菜单图标、折叠态原生 tooltip 与 `localStorage` 跨刷新保持，并补 `MainLayout` 组件测试 | `MainLayout.vue`、`MainLayout.spec.js`、`testing.md` |
 | D78 | `CustomerServiceImpl` / `SupplierServiceImpl` 覆盖率补测完成：补齐导出 Excel、成功查询与剩余高价值失败分支后，两者行覆盖率提升到约 `95.87%` / `97.75%`，`service.impl` 包级行覆盖率提升到约 `91.68%`，为后续评估 `85%` 或 BRANCH 门槛留出余量 | `CustomerServiceImplTest.java`、`SupplierServiceImplTest.java`、`testing.md` |
 | D79 | GitHub 仓库保护链恢复：新仓库已重新配置 `protect-main` ruleset，并将 `backend-test`、`frontend-test` 设为 required checks；PR 需通过两项检查后才能合并 `main` | GitHub 仓库 `Settings / Rulesets`、`.github/workflows/ci.yml`、协作文档 |
+| D80 | 前端页面级联动测试首版：补齐 `useInboundCreatePage` / `useOutboundCreatePage` 保存草稿 happy/error path，以及 `InboundOrderCreate` / `OutboundOrderCreate` 的“保存草稿 / 保存并新建 / 智能识别导入”页面联动测试；同时修正文档中“AI 弹窗 confirm 写回 form”的过时描述 | `frontend/src/composables/__tests__/`、`frontend/src/views/**/__tests__/`、`testing.md`、`frontend-order-pages.md` |

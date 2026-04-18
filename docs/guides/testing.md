@@ -178,7 +178,7 @@ mvn verify
 
 ### 3.1 当前状态
 
-前端已接入 Vitest，当前已覆盖 composable 纯逻辑层和首批关键组件渲染 / 交互测试。
+前端已接入 Vitest，当前已覆盖 composable 纯逻辑层、关键组件渲染 / 交互测试，以及创建页保存链首批页面级联动测试。
 
 ### 3.2 已配置：Vitest 单测
 
@@ -195,9 +195,13 @@ npm test
 | `useOrderCalc`：行金额计算、合计数量/金额 | 高 |
 | `useOrderValidation`：字段校验、行校验、单据级校验 | 高 |
 | `useOrderItems`：增删插改行、最小行数限制 | 中 |
+| `useInboundCreatePage`：保存入库草稿 happy path / error path、成功后路由跳转 | 高 |
+| `useOutboundCreatePage`：保存出库草稿 happy path / error path、成功后路由跳转 | 高 |
 | `OrderItemTable`：工具条按钮、商品选择/清空事件、出库库存列与合计行、只读展示 | 高 |
 | `ProductSelectDialog`：搜索输入、快速新建、当前已选商品标签、确认/取消交互 | 高 |
 | `MainLayout`：侧边栏折叠按钮、220px/64px 宽度切换、`localStorage` 持久化与折叠菜单标题提示 | 高 |
+| `InboundOrderCreate`：保存草稿、保存并新建、智能识别导入按钮与页面 composable 联动 | 高 |
+| `OutboundOrderCreate`：保存草稿、保存并新建、智能识别导入按钮与页面 composable 联动 | 高 |
 
 **测试文件位置**：
 
@@ -206,14 +210,18 @@ npm test
 | `frontend/src/composables/__tests__/useOrderCalc.spec.js` | 行金额与合计计算 |
 | `frontend/src/composables/__tests__/useOrderValidation.spec.js` | 入库/出库/AI 导入校验 |
 | `frontend/src/composables/__tests__/useOrderItems.spec.js` | 明细增删插改与商品回填 |
+| `frontend/src/composables/__tests__/useInboundCreatePage.spec.js` | 入库创建页保存草稿 happy/error path、成功后跳转列表 |
+| `frontend/src/composables/__tests__/useOutboundCreatePage.spec.js` | 出库创建页保存草稿 happy/error path、成功后跳转列表 |
 | `frontend/src/components/order/__tests__/OrderItemTable.spec.js` | 明细表工具条、商品列事件、出库库存列与只读渲染 |
 | `frontend/src/components/order-workbench/__tests__/ProductSelectDialog.spec.js` | 商品弹窗搜索、快速新建、当前选中商品确认与取消 |
 | `frontend/src/layouts/__tests__/MainLayout.spec.js` | 侧边栏折叠按钮、状态持久化与折叠态标题提示 |
+| `frontend/src/views/inbound/__tests__/InboundOrderCreate.spec.js` | 入库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
+| `frontend/src/views/outbound/__tests__/OutboundOrderCreate.spec.js` | 出库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
 
 **当前未覆盖**：
 
 - `useOrderForm`：pageMode 映射、草稿加载
-- 页面级联动测试（创建页保存 / 弹窗联动 / 路由模式切换）
+- AI 识别弹窗自身确认成单链路（成功 / 异常 / 跳详情）
 - 端到端联调测试
 
 ---

@@ -11,6 +11,7 @@
 - 同步工程文档：收口当前 `main` 单分支协作方式，并确认 `protect-main` 与 required checks 已在新仓库恢复
 - 启用 `docs/devlog/` 开发日志目录，并补充首份仓库重建与 CI / Ruleset 恢复记录
 - 按文档规范补充 `docs/design/` 目录下的系统设计、架构摘要与数据库设计桥接文档，并接入 README 文档索引
+- 补充前端创建页页面级联动测试，并将前端规格文档中的 AI 弹窗流程描述修正为当前实现
 
 ### 计划中
 - 单据工作台第二批：收敛 `useOrderWorkbenchPage` 公共 composable，接入 `ProductSelectDialog`

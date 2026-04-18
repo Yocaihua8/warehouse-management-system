@@ -124,8 +124,8 @@ AI 流程（独立）：
          ├─ useAiRecognition    → AI草稿生命周期
          ├─ useProductSearch    → 商品匹配
          └─ useQuickCreate      → 快速新建产品/供应商/客户
-         ↓ emit('confirmed', { form, items })
-    页面接收，写入 form + items
+         ↓ confirmInbound / confirmOutbound
+    弹窗内部直接确认生成正式单据，并在成功后跳转详情页
 
 打印流程：
     openPrintWindow(id, type) → window.open(/inbound/print/:id)
@@ -346,14 +346,15 @@ const {
 } = useAiRecognition()
 ```
 
-AI 识别解耦模式：
+AI 识别当前模式：
 
 ```
-AiRecognitionDialog.vue
-    emit('confirmed', { form, items })
+AiRecognitionDialog.vue / AiOutboundRecognitionDialog.vue
+    内部维护 AI 草稿编辑、匹配和快速新建状态
         ↓
-页面接收 → 写入 form + items
-用户可继续编辑后再保存/提交
+confirmInbound / confirmOutbound
+        ↓
+成功后直接跳转到正式单据详情页
 ```
 
 ### 3.7 `useOrderWorkbenchPage`
