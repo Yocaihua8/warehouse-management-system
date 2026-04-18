@@ -113,6 +113,7 @@ cd desktop-client && mvn javafx:run
 | [docs/features/](./docs/features/README.md) | 各业务模块功能规格 |
 | [docs/guides/setup.md](./docs/guides/setup.md) | 本地开发环境搭建 |
 | [docs/guides/testing.md](./docs/guides/testing.md) | 测试策略与运行方式 |
+| [docs/devlog/README.md](./docs/devlog/README.md) | 开发过程日志与迭代记录 |
 | [docs/BACKLOG.md](./docs/BACKLOG.md) | 开发待办与优先级 |
 | [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 贡献指南与开发规范 |

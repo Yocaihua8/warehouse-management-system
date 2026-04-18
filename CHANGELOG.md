@@ -9,6 +9,7 @@
 ### Changed
 - 补充 GitHub 协作文档：新建仓库时，需先让 `backend-test`、`frontend-test` 成功运行一次，Ruleset 才能选择 required checks
 - 同步工程文档：收口当前 `main` 单分支协作方式，并确认 `protect-main` 与 required checks 已在新仓库恢复
+- 启用 `docs/devlog/` 开发日志目录，并补充首份仓库重建与 CI / Ruleset 恢复记录
 
 ### 计划中
 - 单据工作台第二批：收敛 `useOrderWorkbenchPage` 公共 composable，接入 `ProductSelectDialog`

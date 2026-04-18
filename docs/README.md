@@ -26,6 +26,7 @@
 2. 再看 [BACKLOG](./BACKLOG.md) 确认优先级和上下文
 3. 阅读对应模块的功能规格文档
 4. 查看 [项目路线图](./项目路线图.md) 了解当前版本阶段
+5. 如需了解最近一轮推进过程，查看 [开发日志](./devlog/README.md)
 
 ### 我要准备项目演示或求职材料
 
@@ -87,6 +88,7 @@
 | 文档 | 说明 |
 |------|------|
 | [项目路线图](./项目路线图.md) | 系统定位演进、已完成功能清单、版本节点 |
+| [devlog/README.md](./devlog/README.md) | 开发过程日志索引（日报 / 阶段记录） |
 | [BACKLOG](./BACKLOG.md) | P0-P3 待办、技术债务、验收标准、规模估算 |
 | [../CHANGELOG.md](../CHANGELOG.md) | 版本变更记录（Keep a Changelog 格式） |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | 贡献指南：代码规范、测试要求、PR 流程 |
