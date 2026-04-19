@@ -43,7 +43,6 @@
 ---
 
 ## 技术债务
-
 | # | 描述 | 影响 | 规模 |
 |---|------|------|:----:|
 | T1 | 配置来源不够收口：`application.yaml` / `application-local.yml` / `docker-compose.yml` 三套来源并存，本地手工启动与 Compose 启动默认值不同（会话存储、数据库密码）；新人上手需额外对照 | 新人上手困难，本地与 Docker 行为差异 | S |
@@ -165,3 +164,4 @@
 | D82 | 客户 / 供应商自定义字段扩展：为 `customer`、`supplier` 新增 `custom_fields_json` 字段与 Flyway 迁移，后端 CRUD / Mapper / Service 接入 JSON 对象校验，前端新增/编辑页复用键值对编辑器，列表页补充自定义字段摘要展示 | `backend/src/main/resources/db/migration/V10__customer_supplier_custom_fields.sql`、`CustomerServiceImpl.java`、`SupplierServiceImpl.java`、`frontend/src/views/customer/`、`frontend/src/views/supplier/` |
 | D83 | 用户密码独立重置流程：用户编辑弹窗不再直接修改密码，新增 `/user/reset-password` 独立接口与“重置密码”弹窗，管理员可单独重置密码且补齐 `UserServiceImpl` 单测 | `UserController.java`、`UserServiceImpl.java`、`UserListView.vue`、`auth.md` |
 | D84 | 桌面端系统设置页服务启停收口：系统设置页支持后端 / AI 服务启动与停止、连接状态回刷、日志目录查看，并通过 PID 文件 + 端口回退方式定位本地进程；对应 backlog / 路线图 / 测试文档同步到当前真实状态 | `desktop-client/src/main/java/com/yocaihua/wms/desktop/module/settings/SettingsView.java`、`desktop-client.md`、`testing.md` |
+| D85 | 桌面端 AI 启动状态细节修复：系统设置页启动 AI 服务前会先回刷健康检查，服务已可用时不再重复拉起；同时修正启动失败乱码提示与 AI 服务地址误显示为后端地址的问题 | `SettingsView.java`、`StartupCoordinator.java`、`StartupContext.java`、`desktop-client.md` |

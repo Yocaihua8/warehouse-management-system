@@ -244,7 +244,7 @@ public class SettingsView {
         appVersionValueLabel.setText(defaultText(startupContext.getAppVersion(), "-"));
         desktopSupportedValueLabel.setText(startupContext.isDesktopSupported() ? "是" : "否");
         authRequiredValueLabel.setText(startupContext.isAuthRequired() ? "需要" : "不需要");
-        aiBaseUrlValueLabel.setText(defaultText(startupContext.getServerBaseUrl(), DEFAULT_BASE_URL));
+        aiBaseUrlValueLabel.setText(defaultText(startupContext.getAiBaseUrl(), "http://127.0.0.1:9000"));
     }
 
     private void handleSaveConfig() {
@@ -415,22 +415,54 @@ public class SettingsView {
 
         setLoadingState(true, loadingMessage);
 
-        Task<ServiceStartResult> startTask = new Task<>() {
+        Task<ServiceStartAttempt> startTask = new Task<>() {
             @Override
-            protected ServiceStartResult call() throws Exception {
-                Path logPath = prepareLogPath(logFileName);
-                Path pidPath = preparePidPath(resolvePidFileName(expectation));
-                startDetachedProcess(command, workingDirectory, logPath, pidPath);
+            protected ServiceStartAttempt call() throws Exception {
+                StartupContext beforeStartContext = prepareLatestStartupContext();
+                if (isExpectationReady(beforeStartContext, expectation)) {
+                    return new ServiceStartAttempt(beforeStartContext, null, true, false, null);
+                }
+
+                Path logPath;
+                try {
+                    logPath = prepareLogPath(logFileName);
+                    Path pidPath = preparePidPath(resolvePidFileName(expectation));
+                    startDetachedProcess(command, workingDirectory, logPath, pidPath);
+                } catch (Exception ex) {
+                    StartupContext refreshedContext = prepareLatestStartupContext();
+                    return new ServiceStartAttempt(
+                            refreshedContext,
+                            resolveLogDir().resolve(logFileName),
+                            isExpectationReady(refreshedContext, expectation),
+                            false,
+                            resolveErrorMessage(ex, serviceName + "启动失败。")
+                    );
+                }
+
                 ServiceStartResult result = rerunStartupCheck(expectation);
-                return new ServiceStartResult(result.startupContext(), logPath, result.serviceReady());
+                return new ServiceStartAttempt(result.startupContext(), logPath, result.serviceReady(), true, null);
             }
         };
 
         startTask.setOnSucceeded(event -> {
-            ServiceStartResult result = startTask.getValue();
+            ServiceStartAttempt result = startTask.getValue();
             applyRefreshedStartupContext(result.startupContext());
             if (result.serviceReady()) {
-                setLoadingState(false, serviceName + "启动命令已执行，并已自动完成启动检查。");
+                String successMessage = result.commandStarted()
+                        ? serviceName + "启动命令已执行，并已自动完成启动检查。"
+                        : serviceName + "当前已可用，无需重复启动。";
+                startupFailureReasonValueLabel.setText("无");
+                lastRefreshTimeValueLabel.setText(defaultText(
+                        result.startupContext() == null ? null : result.startupContext().getLastStatusRefreshTime(),
+                        formatNow()
+                ));
+                setLoadingState(false, successMessage);
+                return;
+            }
+            if (!result.commandStarted() && !isBlank(result.errorMessage())) {
+                startupFailureReasonValueLabel.setText(result.errorMessage());
+                lastRefreshTimeValueLabel.setText(formatNow());
+                setLoadingState(false, result.errorMessage());
                 return;
             }
             String message = serviceName + "启动命令已执行，但启动检查仍未确认服务可用。可稍后重试，必要时查看日志：" + result.logPath();
@@ -615,15 +647,14 @@ public class SettingsView {
     }
 
     private ServiceStartResult rerunStartupCheck(StartupExpectation expectation) throws InterruptedException {
-        StartupCoordinator startupCoordinator = new StartupCoordinator(appConfigService, new AuthService(appConfigService));
-        StartupContext latestContext = startupCoordinator.prepareInitialContext();
+        StartupContext latestContext = prepareLatestStartupContext();
         if (isExpectationReady(latestContext, expectation)) {
             return new ServiceStartResult(latestContext, null, true);
         }
 
         for (int attempt = 0; attempt < 12; attempt++) {
             Thread.sleep(2000L);
-            latestContext = startupCoordinator.prepareInitialContext();
+            latestContext = prepareLatestStartupContext();
             if (isExpectationReady(latestContext, expectation)) {
                 return new ServiceStartResult(latestContext, null, true);
             }
@@ -883,10 +914,15 @@ public class SettingsView {
     }
 
     private String resolveErrorMessage(Throwable throwable, String fallbackMessage) {
-        if (throwable == null || isBlank(throwable.getMessage())) {
+        String message = extractDeepestMessage(throwable);
+        if (isBlank(message)) {
             return fallbackMessage;
         }
-        return throwable.getMessage().trim();
+        String normalizedMessage = normalizeNativeMessage(message);
+        if (containsUnreadableReplacement(normalizedMessage)) {
+            return buildEncodedErrorFallback(fallbackMessage);
+        }
+        return normalizedMessage;
     }
 
     private void addSummaryRow(GridPane gridPane, int rowIndex, String label1, Label value1, String label2, Label value2) {
@@ -947,6 +983,7 @@ public class SettingsView {
         startupContext.setDatabaseStatus(refreshedContext.getDatabaseStatus());
         startupContext.setAiStatus(refreshedContext.getAiStatus());
         startupContext.setAiMessage(refreshedContext.getAiMessage());
+        startupContext.setAiBaseUrl(refreshedContext.getAiBaseUrl());
         startupContext.setCurrentUsername(refreshedContext.getCurrentUsername());
         startupContext.setAuthRequired(refreshedContext.isAuthRequired());
         startupContext.setDesktopSupported(refreshedContext.isDesktopSupported());
@@ -978,8 +1015,50 @@ public class SettingsView {
         return "无";
     }
 
+    private StartupContext prepareLatestStartupContext() {
+        StartupCoordinator startupCoordinator = new StartupCoordinator(appConfigService, new AuthService(appConfigService));
+        return startupCoordinator.prepareInitialContext();
+    }
+
     private String formatNow() {
         return LocalDateTime.now().format(TIME_FORMATTER);
+    }
+
+    private String extractDeepestMessage(Throwable throwable) {
+        if (throwable == null) {
+            return null;
+        }
+        String message = null;
+        Throwable current = throwable;
+        while (current != null) {
+            if (!isBlank(current.getMessage())) {
+                message = current.getMessage().trim();
+            }
+            current = current.getCause();
+        }
+        return message;
+    }
+
+    private String normalizeNativeMessage(String message) {
+        if (message == null) {
+            return "";
+        }
+        return message
+                .replace('\r', ' ')
+                .replace('\n', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private boolean containsUnreadableReplacement(String message) {
+        return message != null && message.indexOf('\uFFFD') >= 0;
+    }
+
+    private String buildEncodedErrorFallback(String fallbackMessage) {
+        if (fallbackMessage != null && fallbackMessage.contains("AI 服务")) {
+            return fallbackMessage + " 原始系统错误信息存在乱码，请优先确认 python-ai-service/.venv/Scripts/python.exe 或 py 启动器可用，再点击“重新执行启动检查”。";
+        }
+        return fallbackMessage + " 原始系统错误信息存在乱码，请查看日志目录或重新执行启动检查。";
     }
 
     private String defaultText(String value, String defaultValue) {
@@ -1014,6 +1093,15 @@ public class SettingsView {
     }
 
     private record ServiceStartResult(StartupContext startupContext, Path logPath, boolean serviceReady) {
+    }
+
+    private record ServiceStartAttempt(
+            StartupContext startupContext,
+            Path logPath,
+            boolean serviceReady,
+            boolean commandStarted,
+            String errorMessage
+    ) {
     }
 
     private record ServiceStopResult(

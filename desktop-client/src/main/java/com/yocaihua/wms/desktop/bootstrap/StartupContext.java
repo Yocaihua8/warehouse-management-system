@@ -14,6 +14,7 @@ public class StartupContext {
     private String databaseStatus;
     private String aiStatus;
     private String aiMessage;
+    private String aiBaseUrl;
     private String currentUsername;
     private boolean authRequired = true;
     private boolean desktopSupported = true;
@@ -112,6 +113,14 @@ public class StartupContext {
 
     public void setAiMessage(String aiMessage) {
         this.aiMessage = aiMessage;
+    }
+
+    public String getAiBaseUrl() {
+        return aiBaseUrl;
+    }
+
+    public void setAiBaseUrl(String aiBaseUrl) {
+        this.aiBaseUrl = aiBaseUrl;
     }
 
     public String getCurrentUsername() {
