@@ -52,6 +52,21 @@
         <el-table-column prop="contactPerson" label="联系人" width="140" />
         <el-table-column prop="phone" label="联系电话" width="160" />
         <el-table-column prop="address" label="地址" min-width="220" />
+        <el-table-column label="自定义字段摘要" min-width="220">
+          <template #default="scope">
+            <el-tooltip
+              v-if="scope.row.customFieldsJson"
+              placement="top"
+              effect="dark"
+            >
+              <template #content>
+                <ProductCustomFieldsDisplay :value="scope.row.customFieldsJson" />
+              </template>
+              <ProductCustomFieldsDisplay compact :value="scope.row.customFieldsJson" />
+            </el-tooltip>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="180" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
@@ -92,6 +107,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import ProductCustomFieldsDisplay from '../../components/product/ProductCustomFieldsDisplay.vue'
 import { deleteSupplier, getSupplierList } from '../../api/supplier'
 
 const router = useRouter()

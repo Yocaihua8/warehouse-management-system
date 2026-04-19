@@ -13,6 +13,7 @@
 - 按文档规范补充 `docs/design/` 目录下的系统设计、架构摘要与数据库设计桥接文档，并接入 README 文档索引
 - 补充前端创建页页面级联动测试，并将前端规格文档中的 AI 弹窗流程描述修正为当前实现
 - 商品新增/编辑页的自定义字段从原始 JSON textarea 改为键值对编辑器，并补充列表摘要展示与字段序列化单测
+- 客户/供应商新增 `custom_fields_json` 字段，前后端复用键值对编辑器与 JSON 对象校验，列表页增加自定义字段摘要展示
 
 ### 计划中
 - 单据工作台第二批：收敛 `useOrderWorkbenchPage` 公共 composable，接入 `ProductSelectDialog`

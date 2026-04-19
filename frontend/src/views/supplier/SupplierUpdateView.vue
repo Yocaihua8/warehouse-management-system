@@ -47,6 +47,15 @@
           </el-col>
 
           <el-col :span="24">
+            <el-form-item label="自定义字段" prop="customFields">
+              <ProductCustomFieldsEditor
+                v-model="form.customFields"
+                @update:model-value="handleCustomFieldsChange"
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
             <el-form-item label="备注" prop="remark">
               <el-input
                 v-model="form.remark"
@@ -80,7 +89,14 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import ProductCustomFieldsEditor from '../../components/product/ProductCustomFieldsEditor.vue'
 import { getSupplierDetail, updateSupplier } from '../../api/supplier'
+import {
+  createEmptyCustomField,
+  parseCustomFieldRows,
+  serializeCustomFieldRows,
+  validateCustomFieldRows
+} from '../../utils/productCustomFields'
 
 const route = useRoute()
 const router = useRouter()
@@ -94,6 +110,7 @@ const form = reactive({
   contactPerson: '',
   phone: '',
   address: '',
+  customFields: [createEmptyCustomField()],
   remark: '',
   status: 1
 })
@@ -101,7 +118,23 @@ const form = reactive({
 const rules = {
   supplierCode: [{ required: true, message: '请输入供应商编码', trigger: 'blur' }],
   supplierName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  customFields: [{
+    validator: (_rule, _value, callback) => {
+      const errorMessage = validateCustomFieldRows(form.customFields)
+      if (errorMessage) {
+        callback(new Error(errorMessage))
+        return
+      }
+      callback()
+    },
+    trigger: 'change'
+  }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
+}
+
+const handleCustomFieldsChange = (value) => {
+  form.customFields = value
+  formRef.value?.validateField('customFields').catch(() => {})
 }
 
 const loadSupplierDetail = async () => {
@@ -128,6 +161,7 @@ const loadSupplierDetail = async () => {
     form.contactPerson = detail.contactPerson || ''
     form.phone = detail.phone || ''
     form.address = detail.address || ''
+    form.customFields = parseCustomFieldRows(detail.customFieldsJson)
     form.remark = detail.remark || ''
     form.status = Number(detail.status ?? 1)
   } catch (error) {
@@ -150,6 +184,7 @@ const handleSubmit = async () => {
     if (!valid) return
 
     try {
+      const customFieldsJson = serializeCustomFieldRows(form.customFields)
       const res = await updateSupplier({
         id: form.id,
         supplierCode: form.supplierCode,
@@ -157,6 +192,7 @@ const handleSubmit = async () => {
         contactPerson: form.contactPerson,
         phone: form.phone,
         address: form.address,
+        customFieldsJson,
         remark: form.remark,
         status: form.status
       })

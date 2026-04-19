@@ -3,7 +3,7 @@
 > **阅读约定**：
 > - 本文件只记录**尚未完成**的事项，已完成内容在底部"已完成"区
 > - 规模估算：`XS`<半天 · `S`<1天 · `M`<3天 · `L`<1周 · `XL`>1周
-> - 最后更新：2026-04-16
+> - 最后更新：2026-04-19
 
 ---
 
@@ -40,7 +40,6 @@
 | 8 | **桌面端停止服务**：系统设置页当前只能启动服务，增加停止服务、进程状态可见性 | S |
 | 9 | **用户密码独立重置流程**：当前编辑用户可直接改密码，无独立重置入口 | S |
 | 10 | **Testcontainers 集成测试**：使用 Testcontainers 启动真实 MySQL，测试 Flyway 迁移链 + Mapper 层 | M |
-| 11 | **自定义字段扩展到客户/供应商**：当前 `customFieldsJson` 仅商品支持；向客户、供应商实体扩展，需 Flyway 新增字段 + CRUD 接口调整 + 前端键值编辑器复用 | M |
 | 12 | **字段定义管理（完整自定义字段方案）**：Admin 可在后台定义字段模板（字段名、类型：文本/数字/日期/下拉、是否必填），商品/客户/供应商表单自动渲染对应字段；需新增 `custom_field_definition` 表；是 ERP 方向"用户可扩展数据模型"的核心能力 | XL |
 
 ---
@@ -165,3 +164,4 @@
 | D79 | GitHub 仓库保护链恢复：新仓库已重新配置 `protect-main` ruleset，并将 `backend-test`、`frontend-test` 设为 required checks；PR 需通过两项检查后才能合并 `main` | GitHub 仓库 `Settings / Rulesets`、`.github/workflows/ci.yml`、协作文档 |
 | D80 | 前端页面级联动测试首版：补齐 `useInboundCreatePage` / `useOutboundCreatePage` 保存草稿 happy/error path，以及 `InboundOrderCreate` / `OutboundOrderCreate` 的“保存草稿 / 保存并新建 / 智能识别导入”页面联动测试；同时修正文档中“AI 弹窗 confirm 写回 form”的过时描述 | `frontend/src/composables/__tests__/`、`frontend/src/views/**/__tests__/`、`testing.md`、`frontend-order-pages.md` |
 | D81 | 商品自定义字段 UI 改造：商品新增/编辑页将原始 JSON textarea 替换为键值对编辑器，自动序列化回 `customFieldsJson` 写入后端；商品列表中的自定义字段展示改为可读的键值列表 / 摘要，并补充字段序列化与编辑器交互单测 | `frontend/src/views/product/`、`frontend/src/components/product/`、`frontend/src/utils/productCustomFields.js`、`master-data.md` |
+| D82 | 客户 / 供应商自定义字段扩展：为 `customer`、`supplier` 新增 `custom_fields_json` 字段与 Flyway 迁移，后端 CRUD / Mapper / Service 接入 JSON 对象校验，前端新增/编辑页复用键值对编辑器，列表页补充自定义字段摘要展示 | `backend/src/main/resources/db/migration/V10__customer_supplier_custom_fields.sql`、`CustomerServiceImpl.java`、`SupplierServiceImpl.java`、`frontend/src/views/customer/`、`frontend/src/views/supplier/` |

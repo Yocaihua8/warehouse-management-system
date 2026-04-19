@@ -19,6 +19,8 @@ public class Customer {
 
     private String address;
 
+    private String customFieldsJson;
+
     private String remark;
 
     private Integer status;

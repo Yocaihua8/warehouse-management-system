@@ -13,6 +13,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -71,6 +72,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -105,6 +107,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -121,6 +124,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -138,6 +142,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -155,6 +160,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status,
         created_time,
@@ -171,6 +177,7 @@
         contact_person,
         phone,
         address,
+        custom_fields_json,
         remark,
         status
         ) VALUES (
@@ -179,6 +186,7 @@
         #{contactPerson},
         #{phone},
         #{address},
+        #{customFieldsJson},
         #{remark},
         #{status}
         )
@@ -192,6 +200,7 @@
         contact_person = #{contactPerson},
         phone = #{phone},
         address = #{address},
+        custom_fields_json = #{customFieldsJson},
         remark = #{remark},
         status = #{status}
         WHERE id = #{id}

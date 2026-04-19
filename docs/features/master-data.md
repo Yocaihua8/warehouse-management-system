@@ -52,6 +52,18 @@
 - 客户与出库单关联（`outbound_order.customer_id`）
 - 删除时做双重关联校验：`countByCustomerId` + `countByCustomerNameWhenCustomerIdMissing`，命中即拒绝删除
 - `status=0`（停用）由后端强制拦截，停用客户不能用于新建/编辑出库单
+- `custom_fields_json` 支持客户扩展字段，存储 JSON 字符串；新增/编辑时要求是合法 JSON 对象，不超过 4000 字符
+
+### 自定义字段（custom_fields_json）
+
+- 存储格式：合法 JSON 字符串，例如 `{"结算方式":"月结","税号":"9144..."}` 
+- 写入时校验 JSON 合法性（必须为 JSON 对象，不超过 4000 字符）
+- 当前前端实现：客户新增/编辑页复用商品键值对编辑器（"+ 新增字段" + 每行 key/value 输入），前端在提交时自动序列化为 `customFieldsJson`
+- 前端校验规则：
+  - 全空行自动忽略，不写入后端
+  - 有值但字段名为空时拒绝提交
+  - 字段名重复时拒绝提交
+- 当前展示方式：客户列表的“自定义字段摘要”列显示紧凑摘要，悬停 tooltip 展示完整键值列表
 
 ### API
 | 接口 | 说明 |
@@ -72,6 +84,18 @@
 - 创建入库单时 `supplier_id` 可为空（支持临时供应商场景），`supplier_name` 直接存储
 - 删除时做双重关联校验：`countBySupplierId` + `countBySupplierNameWhenSupplierIdMissing`，命中即拒绝删除
 - `status=0`（停用）由后端强制拦截，停用供应商不能用于新建/编辑入库单
+- `custom_fields_json` 支持供应商扩展字段，存储 JSON 字符串；新增/编辑时要求是合法 JSON 对象，不超过 4000 字符
+
+### 自定义字段（custom_fields_json）
+
+- 存储格式：合法 JSON 字符串，例如 `{"开户行":"中国银行","付款周期":"30天"}` 
+- 写入时校验 JSON 合法性（必须为 JSON 对象，不超过 4000 字符）
+- 当前前端实现：供应商新增/编辑页复用商品键值对编辑器（"+ 新增字段" + 每行 key/value 输入），前端在提交时自动序列化为 `customFieldsJson`
+- 前端校验规则：
+  - 全空行自动忽略，不写入后端
+  - 有值但字段名为空时拒绝提交
+  - 字段名重复时拒绝提交
+- 当前展示方式：供应商列表的“自定义字段摘要”列显示紧凑摘要，悬停 tooltip 展示完整键值列表
 
 ### API
 | 接口 | 说明 |

@@ -1,5 +1,7 @@
 package com.yocaihua.wms.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yocaihua.wms.common.BusinessException;
 import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.dto.SupplierAddDTO;
@@ -24,7 +26,9 @@ import java.util.List;
 public class SupplierServiceImpl implements SupplierService {
 
     private static final int MAX_PAGE_SIZE = 200;
+    private static final int MAX_CUSTOM_FIELDS_JSON_LENGTH = 4000;
     private static final DateTimeFormatter EXPORT_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final SupplierMapper supplierMapper;
     private final InboundOrderMapper inboundOrderMapper;
@@ -89,6 +93,7 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     public String addSupplier(SupplierAddDTO supplierAddDTO) {
+        supplierAddDTO.setCustomFieldsJson(validateAndNormalizeCustomFieldsJson(supplierAddDTO.getCustomFieldsJson()));
         Supplier existingSupplier = supplierMapper.selectBySupplierCode(supplierAddDTO.getSupplierCode());
         if (existingSupplier != null) {
             throw new BusinessException("供应商编码已存在");
@@ -104,6 +109,7 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     public String updateSupplier(SupplierUpdateDTO supplierUpdateDTO) {
+        supplierUpdateDTO.setCustomFieldsJson(validateAndNormalizeCustomFieldsJson(supplierUpdateDTO.getCustomFieldsJson()));
         Supplier existingSupplier = supplierMapper.selectById(supplierUpdateDTO.getId());
         if (existingSupplier == null) {
             throw new BusinessException("供应商不存在");
@@ -180,5 +186,26 @@ public class SupplierServiceImpl implements SupplierService {
 
     private String defaultText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String validateAndNormalizeCustomFieldsJson(String rawValue) {
+        String value = rawValue == null ? "" : rawValue.trim();
+        if (value.isEmpty()) {
+            return null;
+        }
+        if (value.length() > MAX_CUSTOM_FIELDS_JSON_LENGTH) {
+            throw new BusinessException("供应商自定义字段长度不能超过4000个字符");
+        }
+        try {
+            JsonNode jsonNode = OBJECT_MAPPER.readTree(value);
+            if (jsonNode == null || !jsonNode.isObject()) {
+                throw new BusinessException("供应商自定义字段必须是JSON对象格式");
+            }
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new BusinessException("供应商自定义字段不是合法JSON，请检查格式");
+        }
+        return value;
     }
 }

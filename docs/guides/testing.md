@@ -30,7 +30,7 @@
 
 | 测试类 | 覆盖场景 |
 |--------|---------|
-| `CustomerServiceImplTest` | 分页参数归一化与 fallback、详情成功/不存在、新增默认状态/重复编码/非法状态/插入失败、修改重复编码/继承状态/非法状态/更新失败、删除不存在/引用校验/删除失败、Excel 导出 |
+| `CustomerServiceImplTest` | 分页参数归一化与 fallback、详情成功/不存在、新增默认状态/重复编码/自定义字段 JSON 归一化与非法 JSON 拒绝/非法状态/插入失败、修改重复编码/继承状态/自定义字段 JSON 归一化与非法 JSON 拒绝/非法状态/更新失败、删除不存在/引用校验/删除失败、Excel 导出 |
 | `DashboardServiceImplTest` | 首页汇总计数、趋势参数校验、缺口日期补零、空行/空日期/空 total 归一化 |
 | `InboundOrderServiceImplTest` | 保存入库单成功主链、重复商品/供应商停用/商品不存在/库存记录不存在/单头保存失败/明细为空/明细保存失败；确认入库不存在/已完成/明细为空/状态更新失败/非管理员/成功；作废不存在/草稿成功/已完成明细为空/已完成回滚；草稿编辑不存在/非草稿/头更新失败/成功；分页参数归一化与非法来源/非法状态；详情查询、Excel/PDF 导出与旧详情映射 |
 | `LowStockAlertServiceImplTest` | 管理员手动触发、低库存筛选、冷却去重、邮件/Webhook 渠道发送、定时检查异常吞掉 |
@@ -40,7 +40,7 @@
 | `StockAdjustLogServiceImplTest` | 库存流水分页默认值、页大小上限、offset 计算与 `productName` 原样透传 |
 | `StockFlowServiceImplTest` | 入库/出库库存增减、库存不足提示、作废回滚、手工调整日志写入 |
 | `StockServiceImplTest` | 分页默认值、页大小上限、后续页 offset、库存记录不存在、空数量/空预警值、手工调整成功、默认操作人与默认原因、Excel 导出与 CSV 导出 |
-| `SupplierServiceImplTest` | 分页参数边界与 offset、查询关键字原样透传、详情成功/不存在、新增重复编码/插入失败、修改重复编码/更新失败、删除不存在/引用校验/删除失败、Excel 导出 |
+| `SupplierServiceImplTest` | 分页参数边界与 offset、查询关键字原样透传、详情成功/不存在、新增重复编码/自定义字段 JSON 归一化与非法 JSON 拒绝/插入失败、修改重复编码/自定义字段 JSON 归一化与非法 JSON 拒绝/更新失败、删除不存在/引用校验/删除失败、Excel 导出 |
 | `SystemServiceImplTest` | 系统健康检查、数据库/AI 状态汇总、AI 消息回退、bootstrap 配置映射与 AI URL 默认值 |
 | `UserServiceImplTest` | 登录、当前用户、Admin-only 用户分页/新增/编辑/删除、默认管理员保护、当前用户自保护 |
 | `AiRecognitionServiceImplTest` | AI 识别异常路径；入库/出库成功识别后的草稿落库、状态更新与结果返回；确认成单成功路径；重复确认 / `markConfirmedToOrder<=0`；出库确认中的未匹配客户、明细写入失败、客户不存在、客户名称不能为空、匹配后客户不存在与客户显示名不能为空；入库确认中的供应商不存在与供应商名称不能为空 |
@@ -117,13 +117,13 @@ mvn verify
 
 **当前基线（2026-04）**：
 
-- `com.yocaihua.wms.service.impl` 指令覆盖率：`87.62%`
-- `com.yocaihua.wms.service.impl` 行覆盖率：`91.68%`
-- `com.yocaihua.wms.service.impl` 分支覆盖率：`74.64%`
+- `com.yocaihua.wms.service.impl` 指令覆盖率：`91.34%`
+- `com.yocaihua.wms.service.impl` 行覆盖率：`91.73%`
+- `com.yocaihua.wms.service.impl` 分支覆盖率：`76.34%`
 
 **当前已覆盖较多的 Service**：
 
-- `CustomerServiceImpl`：行覆盖率约 `95.87%`
+- `CustomerServiceImpl`：行覆盖率约 `95.65%`
 - `DashboardServiceImpl`：行覆盖率 `100%`
 - `LowStockAlertServiceImpl`：行覆盖率约 `87.74%`
 - `OperationLogServiceImpl`：行覆盖率 `100%`
@@ -131,7 +131,7 @@ mvn verify
 - `StockAdjustLogServiceImpl`：行覆盖率 `100%`
 - `StockFlowServiceImpl`：行覆盖率约 `93.01%`
 - `StockServiceImpl`：行覆盖率约 `96.70%`
-- `SupplierServiceImpl`：行覆盖率约 `97.75%`
+- `SupplierServiceImpl`：行覆盖率约 `97.17%`
 - `SystemServiceImpl`：行覆盖率 `100%`
 - `UserServiceImpl`：行覆盖率约 `97.67%`
 - `InboundOrderServiceImpl`：行覆盖率约 `92.04%`
@@ -141,7 +141,7 @@ mvn verify
 
 **门槛评估结论（2026-04）**：
 
-1. 当前 `service.impl` 行覆盖率约 `91.68%`，已经稳定越过包级 `80%` 门槛，并对后续继续上调门槛留出了余量
+1. 当前 `service.impl` 行覆盖率约 `91.73%`，已经稳定越过包级 `80%` 门槛，并对后续继续上调门槛留出了余量
 2. 当前已在 `backend/pom.xml` 启用包级 `LINE >= 80%` 检查，并在 GitHub Actions 后端 job 中切换到 `./mvnw verify`
 3. 当前先只卡行覆盖率，不额外叠加分支覆盖率门槛，避免在低价值分支上过早阻塞构建
 4. 如果后续继续抬升核心服务覆盖率，可再评估：
@@ -152,7 +152,7 @@ mvn verify
 
 1. 阶段 A：集中补核心低覆盖服务
    - 已完成：`InboundOrderServiceImpl`、`OutboundOrderServiceImpl`、`StockServiceImpl`
-   - 结果：`service.impl` 包级行覆盖率已提升到约 `91.68%`
+   - 结果：`service.impl` 包级行覆盖率已提升到约 `91.73%`
 2. 阶段 B：启用包级基础门槛
    - 已完成：`service.impl` 包级 `LINE >= 80%`
    - 目标：先防止整体覆盖率回退
@@ -222,6 +222,12 @@ npm test
 | `frontend/src/views/inbound/__tests__/InboundOrderCreate.spec.js` | 入库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
 | `frontend/src/views/outbound/__tests__/OutboundOrderCreate.spec.js` | 出库创建页底部操作条事件联动、智能识别入口与保存并新建聚焦 |
 
+**当前与自定义字段相关的回归保护**：
+
+- 商品 `customFieldsJson`：前端工具层 + 键值编辑器组件单测
+- 客户 / 供应商 `customFieldsJson`：后端 Service 层 JSON 归一化与非法 JSON 拒绝用例
+- 客户 / 供应商前端页面当前复用商品键值编辑器与序列化工具，主要通过组件 / 工具单测 + 构建验证覆盖
+
 **当前未覆盖**：
 
 - `useOrderForm`：pageMode 映射、草稿加载
@@ -284,5 +290,5 @@ curl -X POST http://127.0.0.1:9000/ocr/inbound/recognize \
 |------|:------:|------|
 | GitHub Actions Required Checks 巡检 | 低 | 当前仓库已配置 `protect-main`；若后续重建仓库或迁移仓库，需重新确认 `backend-test` / `frontend-test` 仍为 required checks |
 | 后端更高覆盖率门槛评估 | 低 | 当前 `service.impl` 已启用包级 `LINE >= 80%`；待低覆盖服务补测后，再评估是否提高到 `85%`，或追加 `BRANCH` 门槛 |
-| 前端页面级联动测试 | 中 | 在已有 composable + 组件测试的基础上，补创建页保存链（`saveDraft` + 路由跳转）和弹窗联动的自动化验证 |
+| 前端页面级联动测试 | 中 | 当前已覆盖创建页保存链 happy/error path；后续补浏览器级保存链、AI 识别弹窗确认成单链与跨页面回归 |
 | 集成测试（Testcontainers） | 低 | 使用 Testcontainers 启动真实 MySQL，测试 Flyway + Mapper 层 |
