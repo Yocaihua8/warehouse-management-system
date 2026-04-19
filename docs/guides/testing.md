@@ -42,7 +42,7 @@
 | `StockServiceImplTest` | 分页默认值、页大小上限、后续页 offset、库存记录不存在、空数量/空预警值、手工调整成功、默认操作人与默认原因、Excel 导出与 CSV 导出 |
 | `SupplierServiceImplTest` | 分页参数边界与 offset、查询关键字原样透传、详情成功/不存在、新增重复编码/自定义字段 JSON 归一化与非法 JSON 拒绝/插入失败、修改重复编码/自定义字段 JSON 归一化与非法 JSON 拒绝/更新失败、删除不存在/引用校验/删除失败、Excel 导出 |
 | `SystemServiceImplTest` | 系统健康检查、数据库/AI 状态汇总、AI 消息回退、bootstrap 配置映射与 AI URL 默认值 |
-| `UserServiceImplTest` | 登录、当前用户、Admin-only 用户分页/新增/编辑/删除、默认管理员保护、当前用户自保护 |
+| `UserServiceImplTest` | 登录、当前用户、Admin-only 用户分页/新增/编辑/删除、独立重置密码、默认管理员保护、当前用户自保护 |
 | `AiRecognitionServiceImplTest` | AI 识别异常路径；入库/出库成功识别后的草稿落库、状态更新与结果返回；确认成单成功路径；重复确认 / `markConfirmedToOrder<=0`；出库确认中的未匹配客户、明细写入失败、客户不存在、客户名称不能为空、匹配后客户不存在与客户显示名不能为空；入库确认中的供应商不存在与供应商名称不能为空 |
 | `AbstractOrderServiceSupportTest` | 管理员权限、作废原因/备注、分页归一化、文本/金额/时间格式化、Excel 汇总行写入与 Jasper 模板加载 |
 

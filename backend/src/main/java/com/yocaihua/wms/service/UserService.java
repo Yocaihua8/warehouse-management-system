@@ -2,6 +2,7 @@ package com.yocaihua.wms.service;
 
 import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.dto.UserAddDTO;
+import com.yocaihua.wms.dto.UserResetPasswordDTO;
 import com.yocaihua.wms.dto.UserUpdateDTO;
 import com.yocaihua.wms.entity.User;
 import com.yocaihua.wms.dto.LoginDTO;
@@ -22,6 +23,8 @@ public interface UserService {
     String addUser(UserAddDTO userAddDTO);
 
     String updateUser(UserUpdateDTO userUpdateDTO);
+
+    String resetPassword(UserResetPasswordDTO userResetPasswordDTO);
 
     String deleteUser(Long id);
 }

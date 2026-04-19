@@ -122,6 +122,7 @@ LoginInterceptor.preHandle()
 | `/operation/log/list` | GET | 操作日志查询 |
 | `/user/add` | POST | 新增用户 |
 | `/user/update` | PUT | 修改用户 |
+| `/user/reset-password` | PUT | 重置用户密码 |
 | `/user/delete/{id}` | DELETE | 删除用户 |
 
 > 此列表是权限控制的**权威来源**，新增 Admin-only 接口时必须同步更新此列表和 `LoginInterceptor`。

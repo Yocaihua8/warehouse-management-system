@@ -1,17 +1,15 @@
 package com.yocaihua.wms.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class UserUpdateDTO {
+public class UserResetPasswordDTO {
 
     @NotNull(message = "用户ID不能为空")
     private Long id;
 
-    private String nickname;
-
-    private String role;
-
-    private Integer status;
+    @NotBlank(message = "新密码不能为空")
+    private String password;
 }

@@ -101,6 +101,9 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (path.startsWith("/user/update") && "PUT".equals(method)) {
             return true;
         }
+        if (path.startsWith("/user/reset-password") && "PUT".equals(method)) {
+            return true;
+        }
         if (path.startsWith("/user/delete/") && "DELETE".equals(method)) {
             return true;
         }
