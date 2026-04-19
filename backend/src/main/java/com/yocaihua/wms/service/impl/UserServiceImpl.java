@@ -8,6 +8,7 @@ import com.yocaihua.wms.common.OperationLogActionConstant;
 import com.yocaihua.wms.common.UserRoleConstant;
 import com.yocaihua.wms.dto.LoginDTO;
 import com.yocaihua.wms.dto.UserAddDTO;
+import com.yocaihua.wms.dto.UserResetPasswordDTO;
 import com.yocaihua.wms.dto.UserUpdateDTO;
 import com.yocaihua.wms.entity.User;
 import com.yocaihua.wms.mapper.UserMapper;
@@ -179,16 +180,28 @@ public class UserServiceImpl implements UserService {
         user.setStatus(normalizedStatus);
         user.setRole(normalizedRole);
 
-        String rawPassword = normalizeOptional(userUpdateDTO.getPassword());
-        if (rawPassword != null && !rawPassword.isEmpty()) {
-            user.setPassword(passwordEncoder.encode(rawPassword));
-        }
-
         int rows = userMapper.updateById(user);
         if (rows <= 0) {
             throw new BusinessException("修改用户失败");
         }
         return "修改用户成功";
+    }
+
+    @Override
+    public String resetPassword(UserResetPasswordDTO userResetPasswordDTO) {
+        ensureAdminPermission("重置用户密码");
+
+        User existing = userMapper.selectById(userResetPasswordDTO.getId());
+        if (existing == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        String normalizedPassword = normalizeRequired(userResetPasswordDTO.getPassword(), "新密码不能为空");
+        int rows = userMapper.updatePasswordById(existing.getId(), passwordEncoder.encode(normalizedPassword));
+        if (rows <= 0) {
+            throw new BusinessException("重置密码失败");
+        }
+        return "重置密码成功";
     }
 
     @Override

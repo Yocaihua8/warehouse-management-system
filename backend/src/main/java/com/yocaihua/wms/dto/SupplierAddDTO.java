@@ -24,6 +24,8 @@ public class SupplierAddDTO {
     @Size(max = 255, message = "地址长度不能超过255")
     private String address;
 
+    private String customFieldsJson;
+
     @Size(max = 255, message = "备注长度不能超过255")
     private String remark;
 }

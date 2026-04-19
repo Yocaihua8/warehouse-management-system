@@ -56,6 +56,8 @@ cd python-ai-service && .\.venv\Scripts\python.exe -m uvicorn app:app --host 127
 
 完整规范见 [docs/guides/branch-conventions.md](./docs/guides/branch-conventions.md)。
 
+当前仓库采用**单长期分支 `main`** 的协作方式：短期功能/修复分支统一从 `main` 创建，通过 Pull Request 合回 `main`。
+
 ### 分支命名
 
 ```
@@ -181,7 +183,8 @@ cd backend && mvn compile -DskipTests
 - `frontend-test`
 
 PR 提交后，这两个 job 会自动执行。  
-如果希望测试失败时禁止合并，还需要由仓库维护者在 GitHub `Settings > Branches / Rulesets` 中，将这两个 job 配置为 **required checks**。
+当前仓库已在 GitHub `Settings > Rulesets` 中配置 `protect-main`，并将这两个 job 设为 **required checks**，PR 需通过两项检查后才能合并。
+对于新建仓库，GitHub 只有在这两个 job 至少成功运行过一次后，才会在 Ruleset 的检查项列表中显示它们。
 
 ### PR 描述模板
 
@@ -204,8 +207,8 @@ PR 提交后，这两个 job 会自动执行。
 
 ### 合并原则
 
-- `feature/*` → `dev`：功能分支完成后合入开发集成分支
-- `dev` → `main`：核心流程可完整跑通后合入，同步更新 `CHANGELOG.md` 和版本号
+- `feature/*` / `fix/*` / `refactor/*` / `docs/*` / `chore/*` → `main`：短期分支从 `main` 创建，经 PR 合入 `main`
+- `main`：受 `protect-main` 规则保护，不直接推送；需通过 `backend-test`、`frontend-test` 后再合并
 
 ---
 

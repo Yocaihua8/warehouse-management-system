@@ -4,6 +4,7 @@ import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.common.Result;
 import com.yocaihua.wms.dto.LoginDTO;
 import com.yocaihua.wms.dto.UserAddDTO;
+import com.yocaihua.wms.dto.UserResetPasswordDTO;
 import com.yocaihua.wms.dto.UserUpdateDTO;
 import com.yocaihua.wms.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -78,6 +79,13 @@ public class UserController {
     @PutMapping("/user/update")
     public Result<String> updateUser(@RequestBody @Valid UserUpdateDTO userUpdateDTO) {
         return Result.success(userService.updateUser(userUpdateDTO));
+    }
+
+    @Operation(summary = "重置用户密码（管理员）")
+    @SecurityRequirement(name = "token")
+    @PutMapping("/user/reset-password")
+    public Result<String> resetPassword(@RequestBody @Valid UserResetPasswordDTO userResetPasswordDTO) {
+        return Result.success(userService.resetPassword(userResetPasswordDTO));
     }
 
     @Operation(summary = "删除用户（管理员）")

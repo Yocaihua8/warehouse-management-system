@@ -3,7 +3,7 @@
 > **阅读约定**：
 > - 本文件只记录**尚未完成**的事项，已完成内容在底部"已完成"区
 > - 规模估算：`XS`<半天 · `S`<1天 · `M`<3天 · `L`<1周 · `XL`>1周
-> - 最后更新：2026-04-16
+> - 最后更新：2026-04-19
 
 ---
 
@@ -27,9 +27,6 @@
 
 | # | 描述 | 验收标准 | 规模 | 里程碑 |
 |---|------|---------|:----:|--------|
-| 8 | **GitHub Required Checks 配置**：仓库侧尚未把 `backend-test` 配成 required check；CI `./mvnw verify` 覆盖率门槛失败时无法阻止 PR 合并 | 仓库 `Settings > Branches / Rulesets` 中 `backend-test` + `frontend-test` 均配置为 required check；覆盖率失败会阻断 PR | XS | v1.9 |
-| 10 | **商品自定义字段 UI 改造**：当前 `customFieldsJson` 在前端以原始 JSON textarea 录入，普通用户不可用；改为动态键值对编辑器（"+ 新增字段"按钮，每行一个 key-value 输入对），自动序列化为 JSON 写入后端，无需用户手写 JSON | ① 商品新增/编辑页"自定义字段"区域显示键值对编辑器；② 可增删行；③ 保存时自动序列化为合法 JSON；④ 详情页反序列化展示为键值列表 | S | v1.9 |
-| 9 | **前端页面级联动测试**：composable 与关键组件测试已就绪；下一步补创建页保存链（`saveDraft` 调用 + 路由跳转模拟）和弹窗联动（AI 识别弹窗 confirm 写回 form）的自动化验证 | 补测 `InboundOrderCreate` / `OutboundOrderCreate` 保存链路至少一条 happy path + 一条 error path | M | v1.9 |
 | 6 | **`OrderItemTable` 瘦身（按需求驱动再评估）**：当前轮次已收口在”焦点/键盘流 composable 抽离 + 商品选择列子组件拆分”；商品编码/名称/规格/单位与数量/单价列暂不继续抽象，避免为简单模板引入过度参数化，以及触发 `el-input-number` 焦点复杂度回升 | 仅在新增交互或列级需求出现时，再评估是否继续拆分剩余列 | — | 按需 |
 
 ---
@@ -40,20 +37,16 @@
 |---|------|:----:|
 | 6 | **Token JWT 化**：评估 JWT 方案，替代当前 DB/Redis 会话存储；需处理主动失效（Deny List）机制 | L |
 | 7 | **AI 商品匹配增强**：引入编辑距离或向量相似度，替代当前纯字符串匹配；增加置信度分级展示 | L |
-| 8 | **桌面端停止服务**：系统设置页当前只能启动服务，增加停止服务、进程状态可见性 | S |
-| 9 | **用户密码独立重置流程**：当前编辑用户可直接改密码，无独立重置入口 | S |
 | 10 | **Testcontainers 集成测试**：使用 Testcontainers 启动真实 MySQL，测试 Flyway 迁移链 + Mapper 层 | M |
-| 11 | **自定义字段扩展到客户/供应商**：当前 `customFieldsJson` 仅商品支持；向客户、供应商实体扩展，需 Flyway 新增字段 + CRUD 接口调整 + 前端键值编辑器复用；依赖 P2 #10 商品 UI 改造先完成 | M |
 | 12 | **字段定义管理（完整自定义字段方案）**：Admin 可在后台定义字段模板（字段名、类型：文本/数字/日期/下拉、是否必填），商品/客户/供应商表单自动渲染对应字段；需新增 `custom_field_definition` 表；是 ERP 方向"用户可扩展数据模型"的核心能力 | XL |
 
 ---
 
 ## 技术债务
-
 | # | 描述 | 影响 | 规模 |
 |---|------|------|:----:|
 | T1 | 配置来源不够收口：`application.yaml` / `application-local.yml` / `docker-compose.yml` 三套来源并存，本地手工启动与 Compose 启动默认值不同（会话存储、数据库密码）；新人上手需额外对照 | 新人上手困难，本地与 Docker 行为差异 | S |
-| T3 | 前端页面级联动与 E2E 仍缺自动化保障：composable 与关键组件测试已覆盖；下一步补创建页保存链（`saveDraft` + 路由跳转）和弹窗联动，已纳入 P2 #9 | 前端回归覆盖面仍不完整 | S |
+| T3 | 前端 E2E / 浏览器级联调仍缺自动化保障：composable、关键组件与创建页保存链 happy/error path 已覆盖；当前主要空白已收敛为浏览器级保存链、AI 识别弹窗确认成单链与跨页面回归 | 前端回归覆盖面仍不完整 | S |
 | T4 | Web 与桌面端能力仍有差异，桌面端供应商管理缺编辑/删除 | 功能覆盖不一致 | M |
 
 ---
@@ -165,3 +158,10 @@
 | D76 | 前端 Vitest 组件测试首批落地：补齐 `OrderItemTable` 与 `ProductSelectDialog` 的渲染 / 关键交互测试，前端测试范围从“仅 composable 纯逻辑”扩展到“composable + 关键组件” | `frontend/src/components/**/__tests__/`、`testing.md` |
 | D77 | 左侧导航栏折叠/展开落地：`MainLayout` 支持 220px/64px 侧栏切换、Header 折叠按钮、菜单图标、折叠态原生 tooltip 与 `localStorage` 跨刷新保持，并补 `MainLayout` 组件测试 | `MainLayout.vue`、`MainLayout.spec.js`、`testing.md` |
 | D78 | `CustomerServiceImpl` / `SupplierServiceImpl` 覆盖率补测完成：补齐导出 Excel、成功查询与剩余高价值失败分支后，两者行覆盖率提升到约 `95.87%` / `97.75%`，`service.impl` 包级行覆盖率提升到约 `91.68%`，为后续评估 `85%` 或 BRANCH 门槛留出余量 | `CustomerServiceImplTest.java`、`SupplierServiceImplTest.java`、`testing.md` |
+| D79 | GitHub 仓库保护链恢复：新仓库已重新配置 `protect-main` ruleset，并将 `backend-test`、`frontend-test` 设为 required checks；PR 需通过两项检查后才能合并 `main` | GitHub 仓库 `Settings / Rulesets`、`.github/workflows/ci.yml`、协作文档 |
+| D80 | 前端页面级联动测试首版：补齐 `useInboundCreatePage` / `useOutboundCreatePage` 保存草稿 happy/error path，以及 `InboundOrderCreate` / `OutboundOrderCreate` 的“保存草稿 / 保存并新建 / 智能识别导入”页面联动测试；同时修正文档中“AI 弹窗 confirm 写回 form”的过时描述 | `frontend/src/composables/__tests__/`、`frontend/src/views/**/__tests__/`、`testing.md`、`frontend-order-pages.md` |
+| D81 | 商品自定义字段 UI 改造：商品新增/编辑页将原始 JSON textarea 替换为键值对编辑器，自动序列化回 `customFieldsJson` 写入后端；商品列表中的自定义字段展示改为可读的键值列表 / 摘要，并补充字段序列化与编辑器交互单测 | `frontend/src/views/product/`、`frontend/src/components/product/`、`frontend/src/utils/productCustomFields.js`、`master-data.md` |
+| D82 | 客户 / 供应商自定义字段扩展：为 `customer`、`supplier` 新增 `custom_fields_json` 字段与 Flyway 迁移，后端 CRUD / Mapper / Service 接入 JSON 对象校验，前端新增/编辑页复用键值对编辑器，列表页补充自定义字段摘要展示 | `backend/src/main/resources/db/migration/V10__customer_supplier_custom_fields.sql`、`CustomerServiceImpl.java`、`SupplierServiceImpl.java`、`frontend/src/views/customer/`、`frontend/src/views/supplier/` |
+| D83 | 用户密码独立重置流程：用户编辑弹窗不再直接修改密码，新增 `/user/reset-password` 独立接口与“重置密码”弹窗，管理员可单独重置密码且补齐 `UserServiceImpl` 单测 | `UserController.java`、`UserServiceImpl.java`、`UserListView.vue`、`auth.md` |
+| D84 | 桌面端系统设置页服务启停收口：系统设置页支持后端 / AI 服务启动与停止、连接状态回刷、日志目录查看，并通过 PID 文件 + 端口回退方式定位本地进程；对应 backlog / 路线图 / 测试文档同步到当前真实状态 | `desktop-client/src/main/java/com/yocaihua/wms/desktop/module/settings/SettingsView.java`、`desktop-client.md`、`testing.md` |
+| D85 | 桌面端 AI 启动状态细节修复：系统设置页启动 AI 服务前会先回刷健康检查，服务已可用时不再重复拉起；同时修正启动失败乱码提示与 AI 服务地址误显示为后端地址的问题 | `SettingsView.java`、`StartupCoordinator.java`、`StartupContext.java`、`desktop-client.md` |

@@ -33,6 +33,7 @@ public class StartupCoordinator {
         context.setAppDisplayName("仓库管理系统");
         context.setAppVersion("unknown");
         context.setServerBaseUrl(resolveServerBaseUrl(appConfig));
+        context.setAiBaseUrl("http://127.0.0.1:9000");
         context.setHasLocalToken(authService.hasLocalToken());
         context.setLastUsername(appConfig.getLastUsername());
         context.setStartupState(StartupState.BOOTSTRAPPING);
@@ -119,6 +120,7 @@ public class StartupCoordinator {
         context.setDatabaseStatus(defaultText(data.getDatabaseStatus(), "UNKNOWN"));
         context.setAiStatus(defaultText(data.getAiStatus(), "UNKNOWN"));
         context.setAiMessage(defaultText(data.getAiMessage(), "AI 服务状态未知"));
+        context.setAiBaseUrl(defaultText(data.getAiBaseUrl(), context.getAiBaseUrl()));
     }
 
     private void applyBootstrap(ApiClient apiClient, StartupContext context) {
@@ -132,6 +134,7 @@ public class StartupCoordinator {
         context.setAppVersion(defaultText(data.getAppVersion(), context.getAppVersion()));
         context.setDesktopSupported(!Boolean.FALSE.equals(data.getDesktopSupported()));
         context.setAuthRequired(!Boolean.FALSE.equals(data.getAuthRequired()));
+        context.setAiBaseUrl(defaultText(data.getAiBaseUrl(), context.getAiBaseUrl()));
     }
 
     private CurrentUser fetchCurrentUser(ApiClient apiClient) {

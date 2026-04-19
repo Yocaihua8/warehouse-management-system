@@ -59,9 +59,11 @@
                 v-if="scope.row.customFieldsJson"
                 effect="dark"
                 placement="top"
-                :content="scope.row.customFieldsJson"
             >
-              <span>{{ summarizeCustomFields(scope.row.customFieldsJson) }}</span>
+              <template #content>
+                <ProductCustomFieldsDisplay :value="scope.row.customFieldsJson" />
+              </template>
+              <ProductCustomFieldsDisplay compact :value="scope.row.customFieldsJson" />
             </el-tooltip>
             <span v-else>-</span>
           </template>
@@ -106,6 +108,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import ProductCustomFieldsDisplay from '../../components/product/ProductCustomFieldsDisplay.vue'
 import { deleteProduct, getProductList } from '../../api/product'
 
 const router = useRouter()
@@ -132,13 +135,6 @@ const parsePageData = (payload) => {
     list: Array.isArray(payload?.list) ? payload.list : [],
     total: typeof payload?.total === 'number' ? payload.total : 0
   }
-}
-
-const summarizeCustomFields = (value) => {
-  const text = (value || '').trim()
-  if (!text) return '-'
-  if (text.length <= 30) return text
-  return `${text.slice(0, 30)}...`
 }
 
 const loadProductList = async () => {

@@ -52,6 +52,7 @@
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleOpenEditDialog(row)">编辑</el-button>
+            <el-button type="warning" link @click="handleOpenResetPasswordDialog(row)">重置密码</el-button>
             <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -81,12 +82,12 @@
         <el-form-item label="用户名" prop="username">
           <el-input v-model="editForm.username" :disabled="isEditMode" />
         </el-form-item>
-        <el-form-item :label="isEditMode ? '重置密码' : '密码'" prop="password">
+        <el-form-item v-if="!isEditMode" label="密码" prop="password">
           <el-input
             v-model="editForm.password"
             type="password"
             show-password
-            :placeholder="isEditMode ? '留空表示不修改密码' : '请输入密码'"
+            placeholder="请输入密码"
           />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
@@ -112,13 +113,48 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="resetPasswordDialogVisible"
+      title="重置密码"
+      width="460px"
+      destroy-on-close
+    >
+      <el-form ref="resetPasswordFormRef" :model="resetPasswordForm" :rules="resetPasswordRules" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input :model-value="resetPasswordForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="新密码" prop="password">
+          <el-input
+            v-model="resetPasswordForm.password"
+            type="password"
+            show-password
+            placeholder="请输入新密码"
+          />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="resetPasswordForm.confirmPassword"
+            type="password"
+            show-password
+            placeholder="请再次输入新密码"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resetPasswordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetPasswordLoading" @click="handleResetPasswordSubmit">
+          确认重置
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { addUser, deleteUser, getUserList, updateUser } from '../../api/user'
+import { addUser, deleteUser, getUserList, resetUserPassword, updateUser } from '../../api/user'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -142,6 +178,15 @@ const editForm = reactive({
   role: 'OPERATOR',
   status: 1
 })
+const resetPasswordDialogVisible = ref(false)
+const resetPasswordFormRef = ref()
+const resetPasswordLoading = ref(false)
+const resetPasswordForm = reactive({
+  id: null,
+  username: '',
+  password: '',
+  confirmPassword: ''
+})
 
 const isEditMode = computed(() => editForm.id != null)
 
@@ -153,6 +198,23 @@ const editRules = computed(() => ({
   role: [{ required: true, message: '角色不能为空', trigger: 'change' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
 }))
+
+const validateConfirmPassword = (_rule, value, callback) => {
+  if (!value || !value.trim()) {
+    callback(new Error('确认密码不能为空'))
+    return
+  }
+  if (value !== resetPasswordForm.password) {
+    callback(new Error('两次输入的密码不一致'))
+    return
+  }
+  callback()
+}
+
+const resetPasswordRules = {
+  password: [{ required: true, message: '新密码不能为空', trigger: 'blur' }],
+  confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+}
 
 const parsePageData = (payload) => {
   if (Array.isArray(payload)) {
@@ -201,6 +263,13 @@ const resetEditForm = () => {
   editForm.status = 1
 }
 
+const resetResetPasswordForm = () => {
+  resetPasswordForm.id = null
+  resetPasswordForm.username = ''
+  resetPasswordForm.password = ''
+  resetPasswordForm.confirmPassword = ''
+}
+
 const handleOpenAddDialog = () => {
   resetEditForm()
   editDialogVisible.value = true
@@ -214,6 +283,13 @@ const handleOpenEditDialog = (row) => {
   editForm.role = row.role || 'OPERATOR'
   editForm.status = row.status === 0 ? 0 : 1
   editDialogVisible.value = true
+}
+
+const handleOpenResetPasswordDialog = (row) => {
+  resetResetPasswordForm()
+  resetPasswordForm.id = row.id
+  resetPasswordForm.username = row.username || ''
+  resetPasswordDialogVisible.value = true
 }
 
 const handleSubmit = async () => {
@@ -230,7 +306,6 @@ const handleSubmit = async () => {
     if (isEditMode.value) {
       res = await updateUser({
         id: editForm.id,
-        password: editForm.password || undefined,
         nickname: editForm.nickname,
         role: editForm.role,
         status: editForm.status
@@ -257,6 +332,36 @@ const handleSubmit = async () => {
     ElMessage.error(error?.response?.data?.message || error?.message || '保存用户失败')
   } finally {
     submitLoading.value = false
+  }
+}
+
+const handleResetPasswordSubmit = async () => {
+  if (!resetPasswordFormRef.value) return
+  try {
+    await resetPasswordFormRef.value.validate()
+  } catch (_error) {
+    return
+  }
+
+  resetPasswordLoading.value = true
+  try {
+    const res = await resetUserPassword({
+      id: resetPasswordForm.id,
+      password: resetPasswordForm.password
+    })
+
+    if (res.data?.code === 1) {
+      ElMessage.success(res.data?.data || '重置密码成功')
+      resetPasswordDialogVisible.value = false
+      resetResetPasswordForm()
+      return
+    }
+    ElMessage.error(res.data?.message || '重置密码失败')
+  } catch (error) {
+    console.error('重置密码失败:', error)
+    ElMessage.error(error?.response?.data?.message || error?.message || '重置密码失败')
+  } finally {
+    resetPasswordLoading.value = false
   }
 }
 

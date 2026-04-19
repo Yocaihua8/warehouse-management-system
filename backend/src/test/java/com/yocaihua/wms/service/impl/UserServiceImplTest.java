@@ -8,6 +8,7 @@ import com.yocaihua.wms.common.TokenStore;
 import com.yocaihua.wms.common.UserRoleConstant;
 import com.yocaihua.wms.dto.LoginDTO;
 import com.yocaihua.wms.dto.UserAddDTO;
+import com.yocaihua.wms.dto.UserResetPasswordDTO;
 import com.yocaihua.wms.dto.UserUpdateDTO;
 import com.yocaihua.wms.entity.User;
 import com.yocaihua.wms.mapper.UserMapper;
@@ -27,6 +28,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -331,15 +333,13 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updateUser_shouldEncodePassword_whenPasswordProvided() {
+    void updateUser_shouldUpdateProfileWithoutPassword_whenFieldsValid() {
         CurrentUserContext.setRole(UserRoleConstant.ADMIN);
         UserUpdateDTO dto = userUpdateDto(2L);
         dto.setNickname("  新昵称  ");
-        dto.setPassword("  newpass  ");
         dto.setRole(null);
         dto.setStatus(1);
         when(userMapper.selectById(2L)).thenReturn(user(2L, "tester", "OLD", "测试员", 1, UserRoleConstant.OPERATOR));
-        when(passwordEncoder.encode("newpass")).thenReturn("ENC2");
         when(userMapper.updateById(any(User.class))).thenReturn(1);
 
         String result = userService.updateUser(dto);
@@ -353,7 +353,7 @@ class UserServiceImplTest {
         assertEquals("新昵称", updated.getNickname());
         assertEquals(1, updated.getStatus());
         assertEquals(UserRoleConstant.OPERATOR, updated.getRole());
-        assertEquals("ENC2", updated.getPassword());
+        assertNull(updated.getPassword());
     }
 
     @Test
@@ -368,6 +368,61 @@ class UserServiceImplTest {
         BusinessException exception = assertThrows(BusinessException.class, () -> userService.updateUser(dto));
 
         assertEquals("修改用户失败", exception.getMessage());
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenCurrentUserIsNotAdmin() {
+        CurrentUserContext.setRole(UserRoleConstant.OPERATOR);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> userService.resetPassword(userResetPasswordDto(1L, "123456")));
+
+        assertEquals("仅管理员可执行：重置用户密码", exception.getMessage());
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenUserMissing() {
+        CurrentUserContext.setRole(UserRoleConstant.ADMIN);
+        when(userMapper.selectById(1L)).thenReturn(null);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> userService.resetPassword(userResetPasswordDto(1L, "123456")));
+
+        assertEquals("用户不存在", exception.getMessage());
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenPasswordBlank() {
+        CurrentUserContext.setRole(UserRoleConstant.ADMIN);
+        when(userMapper.selectById(2L)).thenReturn(user(2L, "tester", "OLD", "测试员", 1, UserRoleConstant.OPERATOR));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> userService.resetPassword(userResetPasswordDto(2L, "   ")));
+
+        assertEquals("新密码不能为空", exception.getMessage());
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void resetPassword_shouldEncodePasswordAndUpdate_whenValid() {
+        CurrentUserContext.setRole(UserRoleConstant.ADMIN);
+        when(userMapper.selectById(2L)).thenReturn(user(2L, "tester", "OLD", "测试员", 1, UserRoleConstant.OPERATOR));
+        when(passwordEncoder.encode("newpass")).thenReturn("ENC2");
+        when(userMapper.updatePasswordById(2L, "ENC2")).thenReturn(1);
+
+        String result = userService.resetPassword(userResetPasswordDto(2L, "  newpass  "));
+
+        assertEquals("重置密码成功", result);
+        verify(userMapper).updatePasswordById(2L, "ENC2");
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenUpdateFails() {
+        CurrentUserContext.setRole(UserRoleConstant.ADMIN);
+        when(userMapper.selectById(2L)).thenReturn(user(2L, "tester", "OLD", "测试员", 1, UserRoleConstant.OPERATOR));
+        when(passwordEncoder.encode("newpass")).thenReturn("ENC2");
+        when(userMapper.updatePasswordById(2L, "ENC2")).thenReturn(0);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> userService.resetPassword(userResetPasswordDto(2L, "newpass")));
+
+        assertEquals("重置密码失败", exception.getMessage());
     }
 
     @Test
@@ -449,6 +504,13 @@ class UserServiceImplTest {
     private UserUpdateDTO userUpdateDto(Long id) {
         UserUpdateDTO dto = new UserUpdateDTO();
         dto.setId(id);
+        return dto;
+    }
+
+    private UserResetPasswordDTO userResetPasswordDto(Long id, String password) {
+        UserResetPasswordDTO dto = new UserResetPasswordDTO();
+        dto.setId(id);
+        dto.setPassword(password);
         return dto;
     }
 

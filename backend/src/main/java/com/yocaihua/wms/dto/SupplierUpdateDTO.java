@@ -22,6 +22,8 @@ public class SupplierUpdateDTO {
 
     private String address;
 
+    private String customFieldsJson;
+
     private String remark;
 
     @NotNull(message = "状态不能为空")

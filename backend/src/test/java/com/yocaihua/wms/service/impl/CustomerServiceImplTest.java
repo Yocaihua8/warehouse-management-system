@@ -125,6 +125,35 @@ class CustomerServiceImplTest {
     }
 
     @Test
+    void addCustomer_shouldNormalizeCustomFieldsJson_whenJsonIsValid() {
+        CustomerAddDTO dto = new CustomerAddDTO();
+        dto.setCustomerCode("C001");
+        dto.setCustomerName("客户A");
+        dto.setCustomFieldsJson("  {\"等级\":\"A\"}  ");
+
+        when(customerMapper.selectByCustomerCode("C001")).thenReturn(null);
+        when(customerMapper.insert(dto)).thenReturn(1);
+
+        String result = customerService.addCustomer(dto);
+
+        assertEquals("新增客户成功", result);
+        assertEquals("{\"等级\":\"A\"}", dto.getCustomFieldsJson());
+    }
+
+    @Test
+    void addCustomer_shouldThrow_whenCustomFieldsJsonInvalid() {
+        CustomerAddDTO dto = new CustomerAddDTO();
+        dto.setCustomerCode("C001");
+        dto.setCustomerName("客户A");
+        dto.setCustomFieldsJson("[1,2,3]");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> customerService.addCustomer(dto));
+
+        assertEquals("客户自定义字段必须是JSON对象格式", exception.getMessage());
+        verify(customerMapper, never()).selectByCustomerCode(any());
+    }
+
+    @Test
     void addCustomer_shouldThrow_whenCodeExists() {
         CustomerAddDTO dto = new CustomerAddDTO();
         dto.setCustomerCode("C001");
@@ -174,6 +203,7 @@ class CustomerServiceImplTest {
         dto.setId(8L);
         dto.setCustomerCode("C008");
         dto.setCustomerName("客户新");
+        dto.setCustomFieldsJson("  {\"行业\":\"零售\"} ");
 
         when(customerMapper.selectById(8L)).thenReturn(existing);
         when(customerMapper.selectByCustomerCode("C008")).thenReturn(existing);
@@ -183,7 +213,25 @@ class CustomerServiceImplTest {
 
         assertEquals("修改客户成功", result);
         assertEquals(0, dto.getStatus());
+        assertEquals("{\"行业\":\"零售\"}", dto.getCustomFieldsJson());
         verify(customerMapper).updateById(dto);
+    }
+
+    @Test
+    void updateCustomer_shouldThrow_whenCustomFieldsJsonInvalid() {
+        Customer existing = customer(8L, "C008", "客户旧", 1);
+
+        CustomerUpdateDTO dto = new CustomerUpdateDTO();
+        dto.setId(8L);
+        dto.setCustomerCode("C008");
+        dto.setCustomerName("客户新");
+        dto.setCustomFieldsJson("{");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> customerService.updateCustomer(dto));
+
+        assertEquals("客户自定义字段不是合法JSON，请检查格式", exception.getMessage());
+        verify(customerMapper, never()).selectById(any());
+        verify(customerMapper, never()).updateById(any());
     }
 
     @Test

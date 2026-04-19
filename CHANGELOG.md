@@ -6,10 +6,21 @@
 
 ## [Unreleased]
 
+### Changed
+- 补充 GitHub 协作文档：新建仓库时，需先让 `backend-test`、`frontend-test` 成功运行一次，Ruleset 才能选择 required checks
+- 同步工程文档：收口当前 `main` 单分支协作方式，并确认 `protect-main` 与 required checks 已在新仓库恢复
+- 启用 `docs/devlog/` 开发日志目录，并补充首份仓库重建与 CI / Ruleset 恢复记录
+- 按文档规范补充 `docs/design/` 目录下的系统设计、架构摘要与数据库设计桥接文档，并接入 README 文档索引
+- 补充前端创建页页面级联动测试，并将前端规格文档中的 AI 弹窗流程描述修正为当前实现
+- 商品新增/编辑页的自定义字段从原始 JSON textarea 改为键值对编辑器，并补充列表摘要展示与字段序列化单测
+- 客户/供应商新增 `custom_fields_json` 字段，前后端复用键值对编辑器与 JSON 对象校验，列表页增加自定义字段摘要展示
+- 用户管理新增独立重置密码流程：编辑用户不再直接修改密码，改为 `/user/reset-password` 独立接口和“重置密码”弹窗
+- 收口桌面端系统设置文档：明确后端 / AI 服务均支持启动、停止、状态回刷与日志目录查看，并同步 backlog / 路线图 / 测试清单
+- 修复桌面端系统设置页 AI 服务状态细节：启动前先回刷健康检查，避免服务已可用时重复拉起；启动失败的乱码错误回退为可读提示，并修正 AI 服务地址不再误显示为后端地址
+
 ### 计划中
 - 单据工作台第二批：收敛 `useOrderWorkbenchPage` 公共 composable，接入 `ProductSelectDialog`
 - Tab 键行间跳转与预置空行键盘录入流
-- 桌面端停止服务功能
 
 ---
 

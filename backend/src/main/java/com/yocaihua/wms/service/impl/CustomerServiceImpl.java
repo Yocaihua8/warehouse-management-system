@@ -1,5 +1,7 @@
 package com.yocaihua.wms.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yocaihua.wms.common.PageResult;
 import com.yocaihua.wms.common.BusinessException;
 import com.yocaihua.wms.dto.CustomerAddDTO;
@@ -26,7 +28,9 @@ import java.util.stream.Collectors;
 public class CustomerServiceImpl implements CustomerService {
 
     private static final int MAX_PAGE_SIZE = 200;
+    private static final int MAX_CUSTOM_FIELDS_JSON_LENGTH = 4000;
     private static final DateTimeFormatter EXPORT_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final CustomerMapper customerMapper;
     private final OutboundOrderMapper outboundOrderMapper;
@@ -132,6 +136,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public String addCustomer(CustomerAddDTO customerAddDTO) {
+        customerAddDTO.setCustomFieldsJson(validateAndNormalizeCustomFieldsJson(customerAddDTO.getCustomFieldsJson()));
         customerAddDTO.setStatus(normalizeStatus(customerAddDTO.getStatus(), 1));
         Customer existingCustomer = customerMapper.selectByCustomerCode(customerAddDTO.getCustomerCode());
         if (existingCustomer != null) {
@@ -147,6 +152,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public String updateCustomer(CustomerUpdateDTO customerUpdateDTO) {
+        customerUpdateDTO.setCustomFieldsJson(validateAndNormalizeCustomFieldsJson(customerUpdateDTO.getCustomFieldsJson()));
         Customer existingCustomer = customerMapper.selectById(customerUpdateDTO.getId());
         if (existingCustomer == null) {
             throw new BusinessException("客户不存在");
@@ -221,6 +227,27 @@ public class CustomerServiceImpl implements CustomerService {
 
     private String defaultText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String validateAndNormalizeCustomFieldsJson(String rawValue) {
+        String value = rawValue == null ? "" : rawValue.trim();
+        if (value.isEmpty()) {
+            return null;
+        }
+        if (value.length() > MAX_CUSTOM_FIELDS_JSON_LENGTH) {
+            throw new BusinessException("客户自定义字段长度不能超过4000个字符");
+        }
+        try {
+            JsonNode jsonNode = OBJECT_MAPPER.readTree(value);
+            if (jsonNode == null || !jsonNode.isObject()) {
+                throw new BusinessException("客户自定义字段必须是JSON对象格式");
+            }
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new BusinessException("客户自定义字段不是合法JSON，请检查格式");
+        }
+        return value;
     }
 
     private Integer normalizeStatus(Integer status, Integer defaultValue) {

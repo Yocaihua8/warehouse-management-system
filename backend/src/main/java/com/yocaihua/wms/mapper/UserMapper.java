@@ -13,7 +13,7 @@ public interface UserMapper {
 
     List<User> selectAll();
 
-    void updatePasswordById(@Param("id") Long id, @Param("password") String password);
+    int updatePasswordById(@Param("id") Long id, @Param("password") String password);
 
     List<User> selectPage(@Param("username") String username,
                           @Param("nickname") String nickname,

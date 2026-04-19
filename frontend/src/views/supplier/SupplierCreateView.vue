@@ -46,6 +46,15 @@
           </el-col>
 
           <el-col :span="24">
+            <el-form-item label="自定义字段" prop="customFields">
+              <ProductCustomFieldsEditor
+                v-model="form.customFields"
+                @update:model-value="handleCustomFieldsChange"
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
             <el-form-item label="备注" prop="remark">
               <el-input
                 v-model="form.remark"
@@ -70,7 +79,13 @@
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import ProductCustomFieldsEditor from '../../components/product/ProductCustomFieldsEditor.vue'
 import { addSupplier } from '../../api/supplier'
+import {
+  createEmptyCustomField,
+  serializeCustomFieldRows,
+  validateCustomFieldRows
+} from '../../utils/productCustomFields'
 
 const router = useRouter()
 const formRef = ref()
@@ -81,12 +96,29 @@ const form = reactive({
   contactPerson: '',
   phone: '',
   address: '',
+  customFields: [createEmptyCustomField()],
   remark: ''
 })
 
 const rules = {
   supplierCode: [{ required: true, message: '请输入供应商编码', trigger: 'blur' }],
-  supplierName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }]
+  supplierName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  customFields: [{
+    validator: (_rule, _value, callback) => {
+      const errorMessage = validateCustomFieldRows(form.customFields)
+      if (errorMessage) {
+        callback(new Error(errorMessage))
+        return
+      }
+      callback()
+    },
+    trigger: 'change'
+  }]
+}
+
+const handleCustomFieldsChange = (value) => {
+  form.customFields = value
+  formRef.value?.validateField('customFields').catch(() => {})
 }
 
 const handleBack = () => {
@@ -100,12 +132,14 @@ const handleSubmit = async () => {
     if (!valid) return
 
     try {
+      const customFieldsJson = serializeCustomFieldRows(form.customFields)
       const res = await addSupplier({
         supplierCode: form.supplierCode,
         supplierName: form.supplierName,
         contactPerson: form.contactPerson,
         phone: form.phone,
         address: form.address,
+        customFieldsJson,
         remark: form.remark
       })
 

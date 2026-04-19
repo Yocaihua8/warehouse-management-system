@@ -116,6 +116,34 @@ class SupplierServiceImplTest {
     }
 
     @Test
+    void addSupplier_shouldNormalizeCustomFieldsJson_whenJsonIsValid() {
+        SupplierAddDTO dto = new SupplierAddDTO();
+        dto.setSupplierCode("S001");
+        dto.setSupplierName("供应商A");
+        dto.setCustomFieldsJson("  {\"区域\":\"华南\"} ");
+        when(supplierMapper.selectBySupplierCode("S001")).thenReturn(null);
+        when(supplierMapper.insert(dto)).thenReturn(1);
+
+        String result = supplierService.addSupplier(dto);
+
+        assertEquals("新增供应商成功", result);
+        assertEquals("{\"区域\":\"华南\"}", dto.getCustomFieldsJson());
+    }
+
+    @Test
+    void addSupplier_shouldThrow_whenCustomFieldsJsonInvalid() {
+        SupplierAddDTO dto = new SupplierAddDTO();
+        dto.setSupplierCode("S001");
+        dto.setSupplierName("供应商A");
+        dto.setCustomFieldsJson("[1]");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> supplierService.addSupplier(dto));
+
+        assertEquals("供应商自定义字段必须是JSON对象格式", exception.getMessage());
+        verify(supplierMapper, never()).selectBySupplierCode(any());
+    }
+
+    @Test
     void addSupplier_shouldThrow_whenInsertFails() {
         SupplierAddDTO dto = new SupplierAddDTO();
         dto.setSupplierCode("S001");
@@ -153,6 +181,41 @@ class SupplierServiceImplTest {
         BusinessException exception = assertThrows(BusinessException.class, () -> supplierService.updateSupplier(dto));
 
         assertEquals("供应商不存在", exception.getMessage());
+        verify(supplierMapper, never()).updateById(any());
+    }
+
+    @Test
+    void updateSupplier_shouldNormalizeCustomFieldsJson_whenJsonIsValid() {
+        SupplierUpdateDTO dto = new SupplierUpdateDTO();
+        dto.setId(8L);
+        dto.setSupplierCode("S008");
+        dto.setSupplierName("供应商新");
+        dto.setCustomFieldsJson(" {\"等级\":\"重点\"} ");
+        dto.setStatus(1);
+
+        when(supplierMapper.selectById(8L)).thenReturn(supplier(8L, "S008", "供应商旧", 1));
+        when(supplierMapper.selectBySupplierCodeExcludeId("S008", 8L)).thenReturn(null);
+        when(supplierMapper.updateById(dto)).thenReturn(1);
+
+        String result = supplierService.updateSupplier(dto);
+
+        assertEquals("修改供应商成功", result);
+        assertEquals("{\"等级\":\"重点\"}", dto.getCustomFieldsJson());
+    }
+
+    @Test
+    void updateSupplier_shouldThrow_whenCustomFieldsJsonInvalid() {
+        SupplierUpdateDTO dto = new SupplierUpdateDTO();
+        dto.setId(8L);
+        dto.setSupplierCode("S008");
+        dto.setSupplierName("供应商新");
+        dto.setCustomFieldsJson("{");
+        dto.setStatus(1);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> supplierService.updateSupplier(dto));
+
+        assertEquals("供应商自定义字段不是合法JSON，请检查格式", exception.getMessage());
+        verify(supplierMapper, never()).selectById(any());
         verify(supplierMapper, never()).updateById(any());
     }
 

@@ -86,6 +86,11 @@ chore: 升级 springdoc-openapi 至 2.8.6
    - `frontend-test`
 7. 建议同时开启 `Require branches to be up to date before merging`
 
+**补充说明：**
+
+- 新建仓库时，需要先让 `backend-test`、`frontend-test` 至少成功运行一次，这两个检查项才会出现在 Ruleset 的可选列表中
+- 如果仓库还没跑过一次 CI，就先推送一次变更或创建一个 PR 触发工作流，再回到 Ruleset 配置 required checks
+
 **说明：**
 
 - `.github/workflows/ci.yml` 只能负责“自动执行测试”
